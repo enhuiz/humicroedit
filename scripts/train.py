@@ -66,6 +66,7 @@ def train(model, dataloader, optimizer, epochs,
             call(on_iteration_end)(status)
 
         call(on_epoch_end)(status)
+        status.epoch += 1
 
 
 def main():
