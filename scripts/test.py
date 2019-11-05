@@ -37,7 +37,7 @@ def get_opts():
     return opts
 
 
-def test(model, dataloader, optimizer, epochs,
+def test(model, dataloader,
          on_iteration_start=[],
          on_iteration_end=[]):
 
@@ -86,13 +86,8 @@ def main():
     model = model.to(opts.device)
     print('{} loaded.'.format(ckpt))
 
-    # build optimizer
-    optimizer = torch.optim.Adam(model.parameters(), opts.lr)
-
     test(model,
          dataloader,
-         optimizer,
-         opts.epochs,
          on_iteration_end=[
              save_results,
          ])
