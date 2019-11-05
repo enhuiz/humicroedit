@@ -29,8 +29,8 @@ def process_sentence(s):
 
 
 @lru_cache()
-def load_corpus(root, split, task):
-    path = os.path.join(root, 'task-{}'.format(task), '{}.csv'.format(split))
+def load_corpus(root, split):
+    path = os.path.join(root, '{}.csv'.format(split))
     df = pd.read_csv(path)
 
     # substitute with the edit word.
@@ -52,27 +52,26 @@ def load_corpus(root, split, task):
 
 
 @lru_cache()
-def build_vocab(root, task):
+def build_vocab(root):
     """
     Build vocab for the task, only word in train will be used.
     """
-    df = load_corpus(root, 'train', task)
+    df = load_corpus(root, 'train')
     sentences = df['original'].tolist() + df['edited'].tolist()
     sentences = map(str.split, sentences)
     vocab = Vocab(sentences)
     return vocab
 
 
-class Humicroedit(Dataset):
-    def __init__(self, root, split, task=1):
+class HumicroeditDataset(Dataset):
+    def __init__(self, root, split):
         self.root = root
         self.split = split
-        self.task = task
-        self.vocab = build_vocab(self.root, self.task)
+        self.vocab = build_vocab(self.root)
         self.make_samples()
 
     def make_samples(self):
-        df = load_corpus(self.root, self.split, self.task)
+        df = load_corpus(self.root, self.split)
 
         odf = df[['original', 'meanGrade']].copy()
         odf['meanGrade'] = 0
@@ -98,7 +97,7 @@ class Humicroedit(Dataset):
         def collate_fn(batch):
             batch = sorted(batch, key=lambda s: -len(s[0]))
             sentences = pack_sequence([sample[0] for sample in batch])
-            grades = torch.tensor([sample[1] for sample in batch])
+            grades = torch.tensor([sample[1] for sample in batch])[:, None]
             batch = [sentences, grades]
             return batch
         return collate_fn
