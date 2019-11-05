@@ -98,10 +98,10 @@ class HumicroeditDataset(Dataset):
             self.samples = edited_samples
 
     def __getitem__(self, index):
-        sentence, grade = self.samples[index]
+        id_, sentence, grade = self.samples[index]
         sentence = self.vocab.tokens2indices(sentence.strip().split())
         sentence = torch.tensor(sentence).long()
-        return sentence, grade
+        return id_, sentence, grade
 
     def get_collate_fn(self):
         def collate_fn(batch):
