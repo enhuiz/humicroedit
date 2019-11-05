@@ -93,9 +93,12 @@ class XWrapper(nn.Module):
 class Serial(nn.Module):
     def __init__(self, *layers):
         super().__init__()
+        self.device = nn.Parameter()
         self.layers = nn.ModuleList(layers)
 
     def forward(self, feed, *args, **kwargs):
+        feed['x'] = feed['x'].to(self.device)
+        feed['y'] = feed['y'].to(self.device)
         for layer in self.layers:
             feed = layer(feed, *args, **kwargs)
         return feed
