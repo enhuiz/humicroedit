@@ -2,7 +2,7 @@
 
 ## Dataset
 
-The dataset is put into the `data/` folder, you need to [download](https://www.cs.rochester.edu/u/nhossain/humicroedit/semeval-2020-task-7-data.zip) it and unzip by yourself.
+The dataset is put into the `data/` folder, you need to [download](https://www.cs.rochester.edu/u/nhossain/humicroedit/semeval-2020-task-7-data.zip) it and unzip by yourself or run `scripts/data/download.sh`.
 
 ```bash
 $ wget https://www.cs.rochester.edu/u/nhossain/humicroedit/semeval-2020-task-7-data.zip
@@ -14,28 +14,30 @@ $ rm semeval-2020-task-7-data.zip
 
 ```plain
 .
-├── README.md
 ├── data                                <- data set
-│   ├── task-1
-│   │   ├── dev.csv
-│   │   └── train.csv
-│   └── task-2
-│       ├── dev.csv
-│       └── train.csv
+│   ├── task-1
+│   │   ├── dev.csv
+│   │   └── train.csv
+│   └── task-2
+│       ├── dev.csv
+│       └── train.csv
 ├── humicroedit                         <- major code
-│   ├── __init__.py
-│   └── networks
+│   ├── datasets
+│   │   ├── humicroedit.py              <- pytorch loader for dataset, texts get preprocessed here. 
+│   │   ├── __init__.py
+│   │   └── vocab.py                    <- vocab, which records the index of each word, indices are used for training model instead of word.
+│   ├── __init__.py
+│   └── networks
+│       ├── decoders
+│       │   └── __init__.py
+│       ├── encoders
+│       │   └── __init__.py
+│       ├── __init__.py
+│       └── layers.py
+├── README.md
 ├── scripts                             <- helper scripts
-│   └── data
-│       └── download.sh
+│   ├── data
+│   │   └── download.sh
+│   └── run.py
 └── semeval-2020-task-7-humicroedit     <- official baseline repo
-    ├── README.md
-    ├── code
-    │   ├── baseline_task_1.py
-    │   ├── baseline_task_2.py
-    │   ├── score_task_1.py
-    │   └── score_task_2.py
-    └── output_dev_baseline
-        ├── task-1-output.csv
-        └── task-2-output.csv
-```
+
