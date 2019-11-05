@@ -86,7 +86,7 @@ def main():
 
     def save_model(status):
         model = status.model
-        i = status.epoch
+        i = status.epoch + 1
         if i % opts.save_every == 0:
             path = os.path.join('ckpt', opts.name, '{0:05d}.pth'.format(i))
             os.makedirs(os.path.dirname(path), exist_ok=True)
