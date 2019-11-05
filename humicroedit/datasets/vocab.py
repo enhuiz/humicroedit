@@ -1,5 +1,6 @@
 import random
 import pandas as pd
+from collections import Counter
 
 
 class Vocab():
@@ -12,7 +13,8 @@ class Vocab():
         return Vocab.specials.index(e)
 
     def __init__(self, corpus: [[str]]):
-        self.words = sorted(set([w for s in corpus for w in s]))
+        self.counter = Counter([w for s in corpus for w in s])
+        self.words = sorted(set(self.counter.values()))
         self.itos = self.specials + self.words
         self.stoi = {w: i for i, w in enumerate(self.itos)}
 
