@@ -14,30 +14,33 @@ $ rm semeval-2020-task-7-data.zip
 
 ```plain
 .
-├── data                                <- data set
-│   ├── task-1
-│   │   ├── dev.csv
-│   │   └── train.csv
-│   └── task-2
-│       ├── dev.csv
-│       └── train.csv
-├── humicroedit                         <- major code
-│   ├── datasets
-│   │   ├── humicroedit.py              <- pytorch loader for dataset, texts get preprocessed here. 
-│   │   ├── __init__.py
-│   │   └── vocab.py                    <- vocab, which records the index of each word, indices are used for training model instead of word.
-│   ├── __init__.py
-│   └── networks
-│       ├── decoders
-│       │   └── __init__.py
-│       ├── encoders
-│       │   └── __init__.py
-│       ├── __init__.py
-│       └── layers.py
 ├── README.md
+├── data                                <- dataset, readonly.
+│   ├── task-1
+│   │   ├── dev.csv
+│   │   └── train.csv
+│   └── task-2
+│       ├── dev.csv
+│       └── train.csv
+├── humicroedit                         <- major code
+│   ├── __init__.py
+│   ├── datasets
+│   │   ├── __init__.py
+│   │   ├── humicroedit.py              <- pytorch loader for the dataset, texts get preprocessed here. 
+│   │   └── vocab.py                    <- vocab, which records the index of each word, indices are used for training model instead 
+│   ├── networks
+│   │   ├── __init__.py                 <- all models are designed here
+│   │   ├── encoders
+│   │   │   ├── __init__.py
+│   │   │   └── lstm.py                 <- a residue LSTM encoder
+│   │   ├── layers.py
+│   │   └── losses
+│   │       ├── __init__.py
+│   │       └── mean_squared_error.py   <- mse loss for regression
+│   └── utils.py
 ├── scripts                             <- helper scripts
-│   ├── data
-│   │   └── download.sh
-│   └── run.py
+│   ├── data
+│   │   └── download.sh
+│   └── train.py                        <- all training calls this script
 └── semeval-2020-task-7-humicroedit     <- official baseline repo
-
+```
