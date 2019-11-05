@@ -41,6 +41,7 @@ $ rm semeval-2020-task-7-data.zip
 ├── scripts                             <- helper scripts
 │   ├── data
 │   │   └── download.sh
+│   ├── test.py                         <- evaluation, result will be written to results/
 │   └── train.py                        <- all training calls this script
 └── semeval-2020-task-7-humicroedit     <- official baseline repo
 ```

@@ -1,5 +1,6 @@
 import os
 import re
+import numpy as np
 import pandas as pd
 from functools import partial, lru_cache
 from collections import defaultdict
@@ -48,6 +49,9 @@ def load_corpus(root, split):
     df['original'] = df['original'].apply(process_sentence)
     df['edited'] = df['edited'].apply(process_sentence)
 
+    if 'meanGrade' not in df:
+        df['meanGrade'] = np.nan
+
     return df
 
 
@@ -63,6 +67,12 @@ def build_vocab(root):
     return vocab
 
 
+def interleave(*args):
+    """interleave: [1, 2, 3], [4, 5, 6] |-> [1, 4, 2, 5, 3, 6]
+    """
+    return [x for l in zip(*args) for x in l]
+
+
 class HumicroeditDataset(Dataset):
     def __init__(self, root, split):
         self.root = root
@@ -73,19 +83,19 @@ class HumicroeditDataset(Dataset):
     def make_samples(self):
         df = load_corpus(self.root, self.split)
 
-        odf = df[['original', 'meanGrade']].copy()
+        odf = df[['id', 'original', 'meanGrade']].copy()
         odf['meanGrade'] = 0
         original_samples = odf.values.tolist()
 
-        edf = df[['edited', 'meanGrade']].copy()
+        edf = df[['id', 'edited', 'meanGrade']].copy()
         edited_samples = edf.values.tolist()
 
         assert len(original_samples) == len(edited_samples)
 
-        # interleave
-        self.samples = [sample for pair in zip(original_samples,
-                                               edited_samples)
-                        for sample in pair]
+        if 'train' in self.split:
+            self.samples = interleave(original_samples, edited_samples)
+        else:
+            self.samples = edited_samples
 
     def __getitem__(self, index):
         sentence, grade = self.samples[index]
@@ -95,10 +105,15 @@ class HumicroeditDataset(Dataset):
 
     def get_collate_fn(self):
         def collate_fn(batch):
-            batch = sorted(batch, key=lambda s: -len(s[0]))
-            sentences = pack_sequence([sample[0] for sample in batch])
-            grades = torch.tensor([sample[1] for sample in batch])[:, None]
-            batch = [sentences, grades]
+            batch = sorted(batch, key=lambda s: -len(s[1]))
+            ids = [sample[0] for sample in batch]
+            sentences = pack_sequence([sample[1] for sample in batch])
+            grades = torch.tensor([sample[2] for sample in batch])[:, None]
+            batch = {
+                'id': ids,
+                'x': sentences,
+                'y': grades
+            }
             return batch
         return collate_fn
 

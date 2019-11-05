@@ -57,7 +57,7 @@ def train(model, dataloader, optimizer, epochs,
             status.batch = batch
             call(on_iteration_start)(status)
 
-            out = model({'x': batch[0], 'y': batch[1]})
+            out = model(feed=batch)
             out['loss'].backward()
             optimizer.step()
             optimizer.zero_grad()
