@@ -69,6 +69,7 @@ def main():
         preds = status.out['x'][..., 0].tolist()
         results += list(zip(ids, preds))
         df = pd.DataFrame(results, columns=['id', 'pred'])
+        df['pred'] = df['pred'].clip(0, 3)  # force the pred inside its domain
         df.to_csv(os.path.join('results', opts.name, 'pred.csv'), index=None)
 
     # build dataset
