@@ -47,7 +47,7 @@ class HumorAttention(nn.Module):
             context: (*, dim)
         """
         x, lengths = pad_packed_sequence(x, True)
-        mask = padding_mask(lengths)
+        mask = padding_mask(lengths).to(x.device)
 
         k = self.k_linear(x)
         v = self.v_linear(x)
@@ -93,12 +93,18 @@ class XWrapper(nn.Module):
 class Serial(nn.Module):
     def __init__(self, *layers):
         super().__init__()
-        self.device = nn.Parameter()
+        self._device = nn.Parameter()
         self.layers = nn.ModuleList(layers)
 
+    @property
+    def device(self):
+        return self._device.device
+
     def forward(self, feed, *args, **kwargs):
-        feed['x'] = feed['x'].to(self.device)
-        feed['y'] = feed['y'].to(self.device)
+        # pytorch bug: https://github.com/pytorch/pytorch/issues/22251
+        # device= is neccessary
+        feed['x'] = feed['x'].to(device=self.device)
+        feed['y'] = feed['y'].to(device=self.device)
         for layer in self.layers:
             feed = layer(feed, *args, **kwargs)
         return feed

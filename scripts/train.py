@@ -6,6 +6,7 @@ import glob
 import time
 import tqdm
 import argparse
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -77,7 +78,7 @@ def main():
         if not ckpts:
             return
         ckpt = ckpts[-1]
-        epoch = int(ckpt.split('.pth')[0])
+        epoch = int(Path(ckpt).stem)
         if status.epoch < epoch:
             status.epoch = epoch
             status.model.load_state_dict(torch.load(ckpt, location='cpu'))
