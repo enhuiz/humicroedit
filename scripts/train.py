@@ -93,8 +93,9 @@ def main():
             torch.save(model.state_dict(), path)
 
     def log(status):
+        epoch = status.epoch
         loss = status.out['loss'].item()
-        msg = 'loss {:.4g}'.format(loss)
+        msg = 'Epoch {} loss {:.4g}'.format(epoch, loss)
         status.pbar.set_description(msg)
 
     # build dataset
