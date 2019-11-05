@@ -28,7 +28,7 @@ $ rm semeval-2020-task-7-data.zip
 ├── scripts                             <- helper scripts
 │   └── data
 │       └── download.sh
-└── semeval-2020-task-7-humicroedit     <- official basline repo
+└── semeval-2020-task-7-humicroedit     <- official baseline repo
     ├── README.md
     ├── code
     │   ├── baseline_task_1.py
