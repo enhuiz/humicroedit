@@ -6,10 +6,18 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from humicroedit.datasets.humicroedit import Humicroedit
+from torch.utils.data import DataLoader
 
 
 def main():
     dataset = Humicroedit('data', 'train')
+    print(dataset.vocab)
+    dataloader = DataLoader(dataset, batch_size=8,
+                            collate_fn=dataset.get_collate_fn())
+    for x, y in dataloader:
+        print(x)
+        print(y)
+        break
 
 
 if __name__ == "__main__":

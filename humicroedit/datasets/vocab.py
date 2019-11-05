@@ -1,6 +1,7 @@
 import random
 import pandas as pd
 from collections import Counter
+from operator import itemgetter
 
 
 class Vocab():
@@ -12,9 +13,10 @@ class Vocab():
     def special2index(e):
         return Vocab.specials.index(e)
 
-    def __init__(self, corpus: [[str]]):
+    def __init__(self, corpus: [[str]], max_size=3000):
         self.counter = Counter([w for s in corpus for w in s])
-        self.words = sorted(set(self.counter.values()))
+        most_common = map(itemgetter(0), self.counter.most_common(max_size))
+        self.words = sorted(set(most_common))
         self.itos = self.specials + self.words
         self.stoi = {w: i for i, w in enumerate(self.itos)}
 
@@ -37,8 +39,10 @@ class Vocab():
         return len(self.itos)
 
     def __str__(self):
-        return ("Vocab(#total={}, #words={}, #specials={})\n"
-                "Examples: {}").format(len(self),
+        return ("Corpus(#words={})\n"
+                "Vocab(#total={}, #words={}, #specials={})\n"
+                "Examples: {}").format(len(self.counter),
+                                       len(self),
                                        len(self.itos) - len(self.specials),
                                        len(self.specials),
                                        random.sample(self.itos, 3))

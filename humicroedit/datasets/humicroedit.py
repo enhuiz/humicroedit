@@ -4,12 +4,13 @@ import pandas as pd
 from functools import partial, lru_cache
 from collections import defaultdict
 
+import torch
+from torch.nn.utils.rnn import pack_sequence
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pack_sequence
 
 from humicroedit.datasets.vocab import Vocab
 
-from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 
 
@@ -80,12 +81,12 @@ class Humicroedit(Dataset):
 
         def encode(s): return self.vocab.tokens2indices(s.split())
 
-        odf = df[['original', 'meanGrade']]
+        odf = df[['original', 'meanGrade']].copy()
         odf['meanGrade'] = 0
         odf['original'] = odf['original'].apply(encode)
         original_samples = odf.values.tolist()
 
-        edf = df[['edited', 'meanGrade']]
+        edf = df[['edited', 'meanGrade']].copy()
         edf['edited'] = edf['edited'].apply(encode)
         edited_samples = edf.values.tolist()
 
@@ -96,10 +97,19 @@ class Humicroedit(Dataset):
                                                edited_samples)
                         for sample in pair]
 
-        print(self.samples)
-
     def __getitem__(self, index):
-        return self.samples[index]
+        sentence, grade = self.samples[index]
+        sentence = torch.tensor(sentence).long()
+        return sentence, grade
+
+    def get_collate_fn(self):
+        def collate_fn(batch):
+            batch = sorted(batch, key=lambda s: -len(s[0]))
+            sentences = pack_sequence([sample[0] for sample in batch])
+            grades = torch.tensor([sample[1] for sample in batch])
+            batch = [sentences, grades]
+            return batch
+        return collate_fn
 
     def __len__(self):
         return len(self.samples)
