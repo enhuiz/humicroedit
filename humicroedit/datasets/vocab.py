@@ -13,7 +13,7 @@ class Vocab():
     def special2index(e):
         return Vocab.specials.index(e)
 
-    def __init__(self, corpus: [[str]], max_size=3000):
+    def __init__(self, corpus: [[str]], max_size=5000):
         self.counter = Counter([w for s in corpus for w in s])
         most_common = map(itemgetter(0), self.counter.most_common(max_size))
         self.words = sorted(set(most_common))
@@ -41,7 +41,7 @@ class Vocab():
     def __str__(self):
         return ("Corpus(#words={})\n"
                 "Vocab(#total={}, #words={}, #specials={})\n"
-                "Examples: {}").format(len(self.counter),
+                "Sample words: {}").format(len(self.counter),
                                        len(self),
                                        len(self.itos) - len(self.specials),
                                        len(self.specials),

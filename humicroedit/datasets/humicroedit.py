@@ -33,25 +33,20 @@ def load_corpus(root, split, task):
     path = os.path.join(root, 'task-{}'.format(task), '{}.csv'.format(split))
     df = pd.read_csv(path)
 
-    # substitute the edit word to a special word: eeewordeee
+    # substitute with the edit word.
+    df['edited'] = df.apply(lambda row: re.sub(r'<.+?/>',
+                                               row['edit'],
+                                               row['original']),
+                            axis=1)
+
     df['original'] = df.apply(lambda row: re.sub(r'<(.+?)/>',
-                                                 r'eee\1eee',
+                                                 r'\1',
                                                  row['original']),
                               axis=1)
 
     # process the sentences
     df['original'] = df['original'].apply(process_sentence)
-
-    # resub the special word
-    df['edited'] = df.apply(lambda row: re.sub(r'eee(.+?)eee',
-                                               str.lower(row['edit']),
-                                               row['original']),
-                            axis=1)
-
-    df['original'] = df.apply(lambda row: re.sub(r'eee(.+?)eee',
-                                                 r'\1',
-                                                 row['original']),
-                              axis=1)
+    df['edited'] = df['edited'].apply(process_sentence)
 
     return df
 
@@ -79,15 +74,11 @@ class Humicroedit(Dataset):
     def make_samples(self):
         df = load_corpus(self.root, self.split, self.task)
 
-        def encode(s): return self.vocab.tokens2indices(s.split())
-
         odf = df[['original', 'meanGrade']].copy()
         odf['meanGrade'] = 0
-        odf['original'] = odf['original'].apply(encode)
         original_samples = odf.values.tolist()
 
         edf = df[['edited', 'meanGrade']].copy()
-        edf['edited'] = edf['edited'].apply(encode)
         edited_samples = edf.values.tolist()
 
         assert len(original_samples) == len(edited_samples)
@@ -99,6 +90,7 @@ class Humicroedit(Dataset):
 
     def __getitem__(self, index):
         sentence, grade = self.samples[index]
+        sentence = self.vocab.tokens2indices(sentence.strip().split())
         sentence = torch.tensor(sentence).long()
         return sentence, grade
 
@@ -113,3 +105,6 @@ class Humicroedit(Dataset):
 
     def __len__(self):
         return len(self.samples)
+
+    def __str__(self):
+        return '{}\nExamples: {}'.format(self.vocab, self.samples[:2])

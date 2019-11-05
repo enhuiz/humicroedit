@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 def main():
     dataset = Humicroedit('data', 'train')
-    print(dataset.vocab)
+    print(dataset)
     dataloader = DataLoader(dataset, batch_size=8,
                             collate_fn=dataset.get_collate_fn())
     for x, y in dataloader:
