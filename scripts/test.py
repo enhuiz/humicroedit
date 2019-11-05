@@ -64,15 +64,18 @@ def main():
     results = []
 
     def save_results(status):
-        results += list(zip(status.out['id'], status.out['x']))
+        nonlocal results
+        ids = status.out['id']
+        preds = status.out['x'][..., 0].tolist()
+        results += list(zip(ids, preds))
         df = pd.DataFrame(results, columns=['id', 'pred'])
-        df.to_csv(os.path.join('results', opts.name, 'pred.csv'))
+        df.to_csv(os.path.join('results', opts.name, 'pred.csv'), index=None)
 
     # build dataset
     ds = HumicroeditDataset(opts.root, 'dev')
     dataloader = DataLoader(ds,
                             batch_size=opts.batch_size,
-                            shuffle=True,
+                            shuffle=False,
                             collate_fn=ds.get_collate_fn())
 
     try:
