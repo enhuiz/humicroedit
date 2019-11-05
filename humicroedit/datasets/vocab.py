@@ -42,10 +42,10 @@ class Vocab():
         return ("Corpus(#words={})\n"
                 "Vocab(#total={}, #words={}, #specials={})\n"
                 "Sample words: {}").format(len(self.counter),
-                                       len(self),
-                                       len(self.itos) - len(self.specials),
-                                       len(self.specials),
-                                       random.sample(self.itos, 3))
+                                           len(self),
+                                           len(self.itos) - len(self.specials),
+                                           len(self.specials),
+                                           random.sample(self.itos, 3))
 
     def __iter__(self):
         for s in self.itos:
