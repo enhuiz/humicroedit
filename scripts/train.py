@@ -82,7 +82,7 @@ def main():
         epoch = int(Path(ckpt).stem)
         if status.epoch < epoch:
             status.epoch = epoch
-            status.model.load_state_dict(torch.load(ckpt, location='cpu'))
+            status.model.load_state_dict(torch.load(ckpt, map_location='cpu'))
             status.model.to(opts.device)
 
     def save_model(status):
