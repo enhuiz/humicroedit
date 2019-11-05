@@ -104,7 +104,7 @@ def main():
                             collate_fn=ds.get_collate_fn())
 
     # build model
-    model = networks.get(opts.name).to(opt.device)
+    model = networks.get(opts.name).to(opts.device)
 
     # build optimizer
     optimizer = torch.optim.Adam(model.parameters(), opts.lr)
