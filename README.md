@@ -46,6 +46,13 @@ $ rm semeval-2020-task-7-data.zip
     └── train.py                        <- all training calls this script
 ```
 
+## Dependencies installation
+
+```
+pip3 install -r requirements.txt
+```
+
+
 ## Train & test
 
 After downloading the dataset, run:
