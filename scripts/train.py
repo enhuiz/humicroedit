@@ -21,7 +21,7 @@ try:
     from humicroedit.utils import call
 except Exception as e:
     print(e)
-    print('Please run inside the root dir, but not {}.'.format(os.getcwd()))
+    print('Please run under the root dir, but not {}.'.format(os.getcwd()))
     exit()
 
 
@@ -30,7 +30,7 @@ def get_opts():
     parser.add_argument('--name', type=str, default='baseline')
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=128)
-    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--root', type=str, default='data/task-1')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--save-every', type=int, default=1)
@@ -50,8 +50,12 @@ def train(model, dataloader, optimizer, epochs,
     })
 
     while status.epoch < epochs:
-        status.pbar = tqdm.tqdm(dataloader)
         call(on_epoch_start)(status)
+
+        if status.epoch >= epochs:
+            break
+
+        status.pbar = tqdm.tqdm(dataloader)
 
         for batch in status.pbar:
             status.batch = batch
@@ -66,24 +70,28 @@ def train(model, dataloader, optimizer, epochs,
             call(on_iteration_end)(status)
 
         call(on_epoch_end)(status)
+
         status.epoch += 1
 
 
 def main():
     opts = get_opts()
 
-    # build callbacks
     ckpts = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))
 
+    # build callbacks
     def load_model(status):
         if not ckpts:
             return
         ckpt = ckpts[-1]
         epoch = int(Path(ckpt).stem)
-        if status.epoch < epoch:
+        if epoch == opts.epochs:
+            status.epoch = epoch
+        elif status.epoch < epoch:
             status.epoch = epoch
             status.model.load_state_dict(torch.load(ckpt, map_location='cpu'))
             status.model.to(opts.device)
+            print(ckpt, 'loaded.')
 
     def save_model(status):
         model = status.model
@@ -110,7 +118,7 @@ def main():
     model = networks.get(opts.name).to(opts.device)
 
     # build optimizer
-    optimizer = torch.optim.Adam(model.parameters(), opts.lr)
+    optimizer = torch.optim.SGD(model.parameters(), opts.lr)
 
     train(model,
           dataloader,

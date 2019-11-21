@@ -70,7 +70,10 @@ def main():
         results += list(zip(ids, preds))
         df = pd.DataFrame(results, columns=['id', 'pred'])
         df['pred'] = df['pred'].clip(0, 3)  # force the pred inside its domain
-        df.to_csv(os.path.join('results', opts.name, 'pred.csv'), index=None)
+        df.to_csv(os.path.join('results',
+                               opts.name,
+                               'task-1-output.csv'),
+                  index=None)
 
     # build dataset
     ds = HumicroeditDataset(opts.root, 'dev')
