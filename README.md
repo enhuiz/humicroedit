@@ -14,7 +14,6 @@ $ rm semeval-2020-task-7-data.zip
 
 ```plain
 .
-├── README.md
 ├── data                                <- dataset, readonly.
 │   ├── task-1
 │   │   ├── dev.csv
@@ -38,12 +37,13 @@ $ rm semeval-2020-task-7-data.zip
 │   │       ├── __init__.py
 │   │       └── mean_squared_error.py   <- mse loss for regression
 │   └── utils.py
-├── scripts                             <- helper scripts
-│   ├── data
-│   │   └── download.sh
-│   ├── test.py                         <- predict, result will be written to results/
-│   └── train.py                        <- all training calls this script
-└── semeval-2020-task-7-humicroedit     <- official baseline repo
+├── official                            <- official baseline repo
+├── README.md
+└── scripts                             <- helper scripts
+    ├── data
+    │   └── download.sh
+    ├── test.py                         <- predict, result will be written to results/
+    └── train.py                        <- all training calls this script
 ```
 
 ## NER, EL and KGE
