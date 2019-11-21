@@ -31,7 +31,7 @@ def get_opts():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='baseline')
     parser.add_argument('--batch-size', type=int, default=128)
-    parser.add_argument('--root', type=str, default='data/task-1')
+    parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--device', type=str, default='cuda')
     opts = parser.parse_args()
     return opts

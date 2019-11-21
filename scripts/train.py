@@ -32,7 +32,7 @@ def get_opts():
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--epochs', type=int, default=30)
-    parser.add_argument('--root', type=str, default='data/task-1')
+    parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--save-every', type=int, default=1)
     opts = parser.parse_args()
