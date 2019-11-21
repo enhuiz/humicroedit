@@ -46,6 +46,22 @@ $ rm semeval-2020-task-7-data.zip
     └── train.py                        <- all training calls this script
 ```
 
+## Train & test
+
+After downloading the dataset, run:
+
+- Train:
+
+```
+./scripts/train.py --name transformer-baseline
+```
+
+- Test:
+
+```
+./scripts/test.py --name transformer-baseline
+```
+
 ## NER, EL and KGE
 
 To incorporate the knowledge graph into our task, we may want to understand the following concept:
