@@ -37,15 +37,15 @@ def get_opts():
     return opts
 
 
-def test(model, dataloader,
+def test(model, dl,
          on_iteration_start=[],
-         on_iteration_end=[]):
+         on_iteration_end=[],
+         pbar=tqdm.tqdm):
 
     status = type('Status', (), {
         'model': model,
+        'pbar': pbar(dl),
     })
-
-    status.pbar = tqdm.tqdm(dataloader)
 
     for batch in status.pbar:
         status.batch = batch
@@ -69,18 +69,17 @@ def main():
         preds = status.out['x'][..., 0].tolist()
         results += list(zip(ids, preds))
         df = pd.DataFrame(results, columns=['id', 'pred'])
-        df['pred'] = df['pred'].clip(0, 3)  # force the pred inside its domain
-        df.to_csv(os.path.join('results',
-                               opts.name,
-                               'task-1-output.csv'),
-                  index=None)
+        # force the pred inside its domain
+        df['pred'] = df['pred'].clip(0, 3)
+        path = os.path.join('results', opts.name, 'task-1-output.csv')
+        df.to_csv(path, index=None)
 
     # build dataset
     ds = HumicroeditDataset(opts.root, 'dev')
-    dataloader = DataLoader(ds,
-                            batch_size=opts.batch_size,
-                            shuffle=False,
-                            collate_fn=ds.get_collate_fn())
+    dl = DataLoader(ds,
+                    batch_size=opts.batch_size,
+                    shuffle=False,
+                    collate_fn=ds.get_collate_fn())
 
     try:
         ckpt = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))[-1]
@@ -94,7 +93,7 @@ def main():
     print('{} loaded.'.format(ckpt))
 
     test(model,
-         dataloader,
+         dl,
          on_iteration_end=[
              save_results,
          ])

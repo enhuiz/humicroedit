@@ -8,18 +8,19 @@ import tqdm
 import argparse
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-
+from torch.utils.data import DataLoader, Subset
+from test import test
 
 try:
     sys.path.append('.')
     from humicroedit.datasets.humicroedit import HumicroeditDataset
     from humicroedit import networks
     from humicroedit.utils import call
-except Exception as e:
+except ImportError as e:
     print(e)
     print('Please run under the root dir, but not {}.'.format(os.getcwd()))
     exit()
@@ -38,24 +39,36 @@ def get_opts():
     return opts
 
 
+def log(status):
+    epoch = status.epoch
+    loss = np.mean(status.losses)
+    msg = 'Epoch {} loss {:.4g}'.format(epoch, loss)
+    status.pbar.set_description(msg)
+
+
 def train(model, dataloader, optimizer, epochs,
           on_iteration_start=[],
           on_iteration_end=[],
           on_epoch_start=[],
-          on_epoch_end=[]):
+          on_epoch_end=[],
+          pbar=tqdm.tqdm):
+
+    on_iteration_end += [log]
+    on_epoch_start += [lambda status: status.losses.clear()]
 
     status = type('Status', (), {
-        'epoch': 0,
+        'epoch': 1,
         'model': model,
+        'losses': [],
     })
 
-    while status.epoch < epochs:
+    while status.epoch <= epochs:
         call(on_epoch_start)(status)
 
-        if status.epoch >= epochs:
+        if status.epoch > epochs:
             break
 
-        status.pbar = tqdm.tqdm(dataloader)
+        status.pbar = pbar(dataloader)
 
         for batch in status.pbar:
             status.batch = batch
@@ -67,6 +80,7 @@ def train(model, dataloader, optimizer, epochs,
             optimizer.zero_grad()
 
             status.out = out
+            status.losses.append(out['loss'].item())
             call(on_iteration_end)(status)
 
         call(on_epoch_end)(status)
@@ -79,6 +93,24 @@ def main():
 
     ckpts = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))
 
+    # build dataset
+    ds = HumicroeditDataset(opts.root, 'train')
+
+    num_train = int(len(ds) * 0.9)
+
+    train_ds = Subset(ds, range(num_train))
+    valid_ds = Subset(ds, range(num_train, len(ds)))
+
+    train_dl = DataLoader(train_ds,
+                          batch_size=opts.batch_size,
+                          shuffle=True,
+                          collate_fn=ds.get_collate_fn())
+
+    valid_dl = DataLoader(valid_ds,
+                          batch_size=opts.batch_size,
+                          shuffle=True,
+                          collate_fn=ds.get_collate_fn())
+
     # build callbacks
     def load_model(status):
         if not ckpts:
@@ -88,31 +120,28 @@ def main():
         if epoch == opts.epochs:
             status.epoch = epoch
         elif status.epoch < epoch:
-            status.epoch = epoch
             status.model.load_state_dict(torch.load(ckpt, map_location='cpu'))
             status.model.to(opts.device)
+            status.epoch = epoch + 1
             print(ckpt, 'loaded.')
 
     def save_model(status):
         model = status.model
-        i = status.epoch + 1
+        i = status.epoch
         if i % opts.save_every == 0:
             path = os.path.join('ckpt', opts.name, '{0:05d}.pth'.format(i))
             os.makedirs(os.path.dirname(path), exist_ok=True)
             torch.save(model.state_dict(), path)
 
-    def log(status):
-        epoch = status.epoch
-        loss = status.out['loss'].item()
-        msg = 'Epoch {} loss {:.4g}'.format(epoch, loss)
-        status.pbar.set_description(msg)
-
-    # build dataset
-    ds = HumicroeditDataset(opts.root, 'train')
-    dataloader = DataLoader(ds,
-                            batch_size=opts.batch_size,
-                            shuffle=True,
-                            collate_fn=ds.get_collate_fn())
+    def validate(status):
+        mses = []
+        test(status.model,
+             valid_dl,
+             on_iteration_end=[
+                 lambda status: mses.append(status.out['loss'].item())
+             ],
+             pbar=lambda dl: dl)
+        print('Loss on valid set: {:.4g}'.format(np.mean(mses)))
 
     # build model
     model = networks.get(opts.name).to(opts.device)
@@ -121,17 +150,15 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), opts.lr)
 
     train(model,
-          dataloader,
+          train_dl,
           optimizer,
           opts.epochs,
-          on_iteration_end=[
-              log,
-          ],
           on_epoch_start=[
               load_model,
           ],
           on_epoch_end=[
               save_model,
+              validate,
           ])
 
 

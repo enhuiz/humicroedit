@@ -14,52 +14,37 @@ from torch.nn.utils.rnn import pad_packed_sequence, PackedSequence
 from humicroedit import networks
 
 
-def padding_mask(lens):
-    """Mask out the blank (padding) values
-    Args:
-        lens: (bs,)
-    Returns:
-        mask: (bs, 1, max_len)
-    """
-    bs, max_len = len(lens), max(lens)
-    mask = torch.zeros(bs, 1, max_len)
-    for i, l in enumerate(lens):
-        mask[i, :, :l] = 1
-    mask = mask > 0
-    return mask
-
-
-class HumorAttention(nn.Module):
-    def __init__(self, dim, dropout=0.2):
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self, dropout):
         super().__init__()
-        self.dim = dim
-        # the essential of humor :)
-        self.humor = nn.Parameter(torch.randn(1, dim))
-        self.k_linear = nn.Linear(dim, dim)
-        self.v_linear = nn.Linear(dim, dim)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, q, k, v, mask=None, rpe_q=None, rpe_v=None):
         """
         Args:
-            x: query (*, len, dim)
+            q: query (*, query_len, dim)
+            k: key (*, key_len, dim)
+            v: value (*, key_len, dim)
+            mask: (*, query_len, key_len), 0 will be masked out
+            rpe_q : (query_len, key_len, dim)
+            rpe_v : (query_len, key_len, dim)
         Returns:
-            context: (*, dim)
+            context: (*, query_len, dim)
+            weights: (*, query_len, key_len)
         """
-        x, lengths = pad_packed_sequence(x, True)
-        mask = padding_mask(lengths).to(x.device)
+        dim = q.shape[-1]
 
-        k = self.k_linear(x)
-        v = self.v_linear(x)
-
-        q = self.humor / self.dim ** 0.5
+        q /= dim ** 0.5
         score = q @ k.transpose(-2, -1)
 
-        score = score.masked_fill(mask == 0, -np.inf)
+        if rpe_q is not None:
+            score += (q.unsqueeze(-2) @ rpe_q.transpose(-2, -1)).squeeze(-2)
+
+        if mask is not None:
+            score = score.masked_fill(mask == 0, -np.inf)
 
         alpha = F.softmax(score, dim=-1)
 
-        # if one query is totally masked
         summation = alpha.sum(dim=-1)
         anynan = (summation != summation)[..., None]
         alpha = alpha.masked_fill(anynan, 0)
@@ -67,7 +52,126 @@ class HumorAttention(nn.Module):
         alpha = self.dropout(alpha)
         context = alpha @ v
 
-        return context.squeeze(1)
+        if rpe_v is not None:
+            context += (alpha.unsqueeze(-2) @ rpe_v).squeeze(-2)
+
+        return context, alpha
+
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, heads, dim, dropout, rpe_k=0,
+                 attention=ScaledDotProductAttention):
+        assert dim % heads == 0, "dim should be a multiple of heads, \
+            got {} and {}".format(dim, heads)
+
+        super().__init__()
+
+        self.heads = heads
+        self.dim = dim
+
+        self.q_linear = nn.Linear(dim, dim)
+        self.k_linear = nn.Linear(dim, dim)
+        self.v_linear = nn.Linear(dim, dim)
+
+        self.rpe_k = rpe_k
+        if rpe_k > 0:
+            self.rpe_w = nn.Embedding(rpe_k * 2 + 1, 2 * dim // heads)
+            logging.info('Using rpe_k={}.'.format(rpe_k))
+
+        self.attention = attention(dropout)
+        self.fc = nn.Linear(dim, dim)
+
+    def forward(self, q, k, v, mask=None):
+        """
+        Args:
+            q: query (batch, query_len, dim)
+            k: key (batch, key_len, dim)
+            v: value (batch, query_len, dim)
+            mask: (batch, query_len, key_len)
+        Returns:
+            context: (batch, query_len, dim)
+        """
+        bs, ql = q.shape[:2]
+
+        q = self.q_linear(q)
+        k = self.k_linear(k)
+        v = self.v_linear(v)
+
+        q = q.view(bs, -1, self.heads, self.dim // self.heads)
+        k = k.view(bs, -1, self.heads, self.dim // self.heads)
+        v = v.view(bs, -1, self.heads, self.dim // self.heads)
+
+        # swap len and head
+        q = q.transpose(1, 2)
+        k = k.transpose(1, 2)
+        v = v.transpose(1, 2)
+
+        # add head dim for mask
+        if mask is not None:
+            mask = mask.unsqueeze(1)
+
+        if self.rpe_k > 0:
+            indices = torch.arange(q.shape[-2])
+            indices = indices.repeat(q.shape[-2], 1)
+            distance = indices - indices.transpose(0, 1)
+            distance = torch.clamp(distance, -self.rpe_k, self.rpe_k)
+            indices = distance + self.rpe_k
+            indices = indices.to(q.device)
+            rpe = self.rpe_w(indices)
+            rpe_q, rpe_v = rpe.chunk(2, dim=-1)
+            context, alpha = self.attention(q, k, v, mask, rpe_q, rpe_v)
+        else:
+            context, alpha = self.attention(q, k, v, mask)
+
+        self.alpha = alpha.detach().cpu()  # for vis
+
+        # swap len and head back
+        context = context.transpose(1, 2)
+        context = context.reshape(bs, ql, self.dim)
+        context = self.fc(context)
+
+        return context
+
+
+class PositionwiseFeedForward(nn.Module):
+    def __init__(self, dim, ffn_dim, dropout):
+        super().__init__()
+        self.dim = dim
+        self.w1 = nn.Linear(dim, ffn_dim)
+        self.w2 = nn.Linear(ffn_dim, dim)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        return self.w2(self.dropout(F.relu(self.w1(x))))
+
+
+class SublayerConnection(nn.Module):
+    def __init__(self, sublayer, dropout):
+        super().__init__()
+        self.sublayer = sublayer
+        self.dropout = nn.Dropout(dropout)
+        self.norm = nn.LayerNorm(sublayer.dim)
+
+    def forward(self, x, applier=lambda x: (x,)):
+        return x + self.dropout(self.sublayer(*applier(self.norm(x))))
+
+
+class TemporalPooling(nn.Module):
+    def __init__(self, pool):
+        super().__init__()
+        self.pool = pool
+
+    def forward(self, x):
+        """
+        Args:
+            x: query (*, len, dim)
+        """
+        values, lengths = pad_packed_sequence(x, True)
+        average = torch.stack([
+            self.pool(value[None, :length].permute(0, 2, 1)).flatten()
+            for value, length in zip(values, lengths)
+        ], dim=0)
+        return average
 
 
 class XWrapper(nn.Module):

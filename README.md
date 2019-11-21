@@ -45,3 +45,11 @@ $ rm semeval-2020-task-7-data.zip
 │   └── train.py                        <- all training calls this script
 └── semeval-2020-task-7-humicroedit     <- official baseline repo
 ```
+
+## NER, EL and KGE
+
+To incorporate the knowledge graph into our task, we may want to understand the following concept:
+
+NER (name entity recognition): https://towardsdatascience.com/named-entity-recognition-with-nltk-and-spacy-8c4a7d88e7da
+EL (entity linking): https://medium.com/analytics-vidhya/entity-linking-a-primary-nlp-task-for-information-extraction-22f9d4b90aa8
+KGE (knowledge graph embeddings): https://github.com/mnick/scikit-kge
