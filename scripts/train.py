@@ -28,7 +28,7 @@ except ImportError as e:
 
 def get_opts():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', type=str, default='baseline')
+    parser.add_argument('--name', type=str, default='transformer-baseline')
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=128)
     parser.add_argument('--epochs', type=int, default=30)
