@@ -2,5 +2,5 @@
 	path = official
 	url = https://github.com/n-hossain/semeval-2020-task-7-humicroedit
 [submodule "data/ASER"]
-	path = data/ASER
+	path = data/aser
 	url = https://github.com/HKUST-KnowComp/ASER.git
