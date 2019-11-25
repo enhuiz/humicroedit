@@ -118,7 +118,7 @@ def main():
         ckpt = ckpts[-1]
         epoch = int(Path(ckpt).stem)
         if epoch == opts.epochs:
-            status.epoch = epoch
+            status.epoch = epoch + 1
         elif status.epoch < epoch:
             status.model.load_state_dict(torch.load(ckpt, map_location='cpu'))
             status.model.to(opts.device)
