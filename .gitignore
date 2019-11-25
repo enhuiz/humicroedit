@@ -4,3 +4,4 @@ ckpt
 results
 atomic
 *.db
+.vscode
