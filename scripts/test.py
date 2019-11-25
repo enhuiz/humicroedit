@@ -30,7 +30,7 @@ except Exception as e:
 def get_opts():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='transformer-baseline')
-    parser.add_argument('--batch-size', type=int, default=128)
+    parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--device', type=str, default='cuda')
     opts = parser.parse_args()
@@ -41,6 +41,7 @@ def test(model, dl,
          on_iteration_start=[],
          on_iteration_end=[],
          pbar=tqdm.tqdm):
+    model = model.eval()
 
     status = type('Status', (), {
         'model': model,
@@ -60,18 +61,18 @@ def test(model, dl,
 def main():
     opts = get_opts()
 
-    os.makedirs(os.path.join('results', opts.name), exist_ok=True)
     results = []
 
     def save_results(status):
         nonlocal results
         ids = status.out['id']
-        preds = status.out['x'][..., 0].tolist()
+        preds = status.out['x'].tolist()
         results += list(zip(ids, preds))
         df = pd.DataFrame(results, columns=['id', 'pred'])
         # force the pred inside its domain
         df['pred'] = df['pred'].clip(0, 3)
         path = os.path.join('results', opts.name, 'task-1-output.csv')
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         df.to_csv(path, index=None)
 
     # build dataset

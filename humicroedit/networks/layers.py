@@ -183,32 +183,42 @@ class PrependCLS(nn.Module):
 
     def forward(self, x):
         values, lengths = pad_packed_sequence(x, True)
-        x = pack_sequence([
-            torch.cat(
-                [torch.tensor([self.cls], device=value.device),
-                 value[:length]])
-            for value, length in zip(values, lengths)
-        ], False)
+        x = [torch.cat([torch.tensor([self.cls]).to(value.device),
+                        value[:length]])
+             for value, length in zip(values, lengths)]
+        x = pack_sequence(x, False)
         return x
 
 
 class XApplier(nn.Module):
-    def __init__(self, layer, broadcast=False):
+    def __init__(self, layer, broadcast=False, key_out='x'):
         super().__init__()
         self.layer = layer
         self.broadcast = broadcast
+        self.key_out = key_out
 
     def forward(self, feed, **_):
         if self.broadcast:
             data = feed['x'].data
             data = self.layer(data)
-            feed['x'] = (PackedSequence(data,
-                                        feed['x'].batch_sizes,
-                                        feed['x'].sorted_indices,
-                                        feed['x'].unsorted_indices)
-                         .to(device=data.device))
+            feed[self.key_out] = (PackedSequence(data,
+                                                 feed['x'].batch_sizes,
+                                                 feed['x'].sorted_indices,
+                                                 feed['x'].unsorted_indices)
+                                  .to(device=data.device))
         else:
-            feed['x'] = self.layer(feed['x'])
+            feed[self.key_out] = self.layer(feed['x'])
+        return feed
+
+
+class XYApplier(nn.Module):
+    def __init__(self, layer, key_out):
+        super().__init__()
+        self.layer = layer
+        self.key_out = key_out
+
+    def forward(self, feed, **_):
+        feed[self.key_out] = self.layer(feed['x'], feed['y'])
         return feed
 
 

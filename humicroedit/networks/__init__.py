@@ -1,8 +1,9 @@
 import torch.nn as nn
+import torch.nn.functional as F
 
-from humicroedit.networks.layers import XApplier, TemporalPooling, Serial, PrependCLS
+from humicroedit.networks.layers import XApplier, XYApplier, TemporalPooling, Serial, PrependCLS
 from humicroedit.networks.encoders import LSTMEncoder, TransformerEncoder
-from humicroedit.networks.losses import MSELoss
+from humicroedit.networks.losses import MSELoss, CrossEntropyLoss
 
 
 def get(name):
@@ -21,6 +22,15 @@ def get(name):
                 XApplier(nn.Linear(dim, 1)),
                 MSELoss(),
             )
+        elif name == 'baseline-ce':
+            model = Serial(
+                XApplier(PrependCLS()),
+                XApplier(nn.Embedding(vocab_size, dim), broadcast=True),
+                XApplier(LSTMEncoder(num_layers, dim)),
+                XApplier(TemporalPooling(lambda x: x[..., 0])),
+                XApplier(nn.Linear(dim, 4)),  # 4 for 4 different grades
+                CrossEntropyLoss(),
+            )
     elif 'transformer-' in name:
         name = name.replace('transformer-', '')
         num_heads = 8
@@ -32,6 +42,15 @@ def get(name):
                 XApplier(TemporalPooling(lambda x: x[..., 0])),
                 XApplier(nn.Linear(dim, 1)),
                 MSELoss(),
+            )
+        elif name == 'baseline-ce':
+            model = Serial(
+                XApplier(PrependCLS()),
+                XApplier(nn.Embedding(vocab_size, dim), broadcast=True),
+                TransformerEncoder(num_layers, num_heads, dim, rpe_k=4),
+                XApplier(TemporalPooling(lambda x: x[..., 0])),
+                XApplier(nn.Linear(dim, 4)),
+                CrossEntropyLoss(),
             )
     else:
         raise Exception("Unknown model: {}.".format(name))

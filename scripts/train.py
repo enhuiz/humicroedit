@@ -30,11 +30,12 @@ def get_opts():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='transformer-baseline')
     parser.add_argument('--lr', type=float, default=3e-3)
-    parser.add_argument('--batch-size', type=int, default=128)
-    parser.add_argument('--epochs', type=int, default=30)
+    parser.add_argument('--batch-size', type=int, default=64)
+    parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--save-every', type=int, default=1)
+    parser.add_argument('--categorical', action='store_true')
     opts = parser.parse_args()
     return opts
 
@@ -52,6 +53,7 @@ def train(model, dataloader, optimizer, epochs,
           on_epoch_start=[],
           on_epoch_end=[],
           pbar=tqdm.tqdm):
+    model = model.train()
 
     on_iteration_end += [log]
     on_epoch_start += [lambda status: status.losses.clear()]
@@ -94,7 +96,7 @@ def main():
     ckpts = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))
 
     # build dataset
-    ds = HumicroeditDataset(opts.root, 'train')
+    ds = HumicroeditDataset(opts.root, 'train', 'ce' in opts.name)
 
     num_train = int(len(ds) * 0.9)
 
@@ -141,13 +143,14 @@ def main():
                  lambda status: mses.append(status.out['loss'].item())
              ],
              pbar=lambda dl: dl)
+        status.model.train()
         print('Loss on valid set: {:.4g}'.format(np.mean(mses)))
 
     # build model
     model = networks.get(opts.name).to(opts.device)
 
     # build optimizer
-    optimizer = torch.optim.SGD(model.parameters(), opts.lr)
+    optimizer = torch.optim.Adam(model.parameters(), opts.lr)
 
     train(model,
           train_dl,
