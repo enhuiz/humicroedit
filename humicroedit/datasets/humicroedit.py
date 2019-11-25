@@ -20,8 +20,14 @@ def process_sentence(s):
     s = s.strip().lower()
     # convert year-old to year old, so that there is smaller vocab
     s = s.replace('-', ' ')
+    # change ` to '
+    s = s.replace('‘', "'")
+    # change ‘ to '
+    s = s.replace('’', "'")
     # tokenize, convert he's to he 's
     s = ' '.join(word_tokenize(s))
+    # remove comma inside number
+    s = re.sub(r"(\d+?),", r"\1", s)
     # convert number to digits, 123 -> 1 2 3,
     s = re.sub(r"([0-9])", r" \1 ", s).strip()
     # replace % with percent
@@ -92,10 +98,10 @@ class HumicroeditDataset(Dataset):
 
         assert len(original_samples) == len(edited_samples)
 
-        if 'train' in self.split:
-            self.samples = interleave(original_samples, edited_samples)
-        else:
-            self.samples = edited_samples
+        # if 'train' in self.split:
+        #     self.samples = interleave(original_samples, edited_samples)
+        # else:
+        self.samples = edited_samples
 
     def __getitem__(self, index):
         id_, sentence, grade = self.samples[index]
