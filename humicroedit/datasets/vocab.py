@@ -5,7 +5,7 @@ from operator import itemgetter
 
 
 class Vocab():
-    specials = ['<pad>', '<unk>', '<s>', '</s>', '<mask>']
+    specials = ['<pad>', '<unk>', '<s>', '</s>', '<cls>']
     pad = specials[0]
     unk = specials[1]
 

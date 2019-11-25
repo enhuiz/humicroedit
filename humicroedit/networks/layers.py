@@ -9,9 +9,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_packed_sequence, PackedSequence
+from torch.nn.utils.rnn import pad_packed_sequence, PackedSequence, pack_sequence
 
 from humicroedit import networks
+from humicroedit.datasets.vocab import Vocab
 
 
 class ScaledDotProductAttention(nn.Module):
@@ -174,14 +175,31 @@ class TemporalPooling(nn.Module):
         return average
 
 
-class XWrapper(nn.Module):
-    def __init__(self, layer, unpack=False):
+class PrependCLS(nn.Module):
+    cls = Vocab.special2index('<cls>')
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        values, lengths = pad_packed_sequence(x, True)
+        x = pack_sequence([
+            torch.cat(
+                [torch.tensor([self.cls], device=value.device),
+                 value[:length]])
+            for value, length in zip(values, lengths)
+        ], False)
+        return x
+
+
+class XApplier(nn.Module):
+    def __init__(self, layer, broadcast=False):
         super().__init__()
         self.layer = layer
-        self.unpack = unpack
+        self.broadcast = broadcast
 
     def forward(self, feed, **_):
-        if self.unpack:
+        if self.broadcast:
             data = feed['x'].data
             data = self.layer(data)
             feed['x'] = (PackedSequence(data,
