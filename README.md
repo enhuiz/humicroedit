@@ -1,15 +1,5 @@
 # Humicroedit
 
-## Dataset
-
-The dataset is put into the `data/` folder, you need to [download](https://www.cs.rochester.edu/u/nhossain/humicroedit/semeval-2020-task-7-data.zip) it and unzip by yourself or run `scripts/data/download.sh`.
-
-```bash
-$ wget https://www.cs.rochester.edu/u/nhossain/humicroedit/semeval-2020-task-7-data.zip
-$ unzip semeval-2020-task-7-data.zip
-$ rm semeval-2020-task-7-data.zip
-```
-
 ## Directory
 
 ```plain
@@ -61,7 +51,9 @@ git clone --recursive https://github.com/enhuiz/humicroedit
 ./scripts/setup/comet.sh
 ```
 
-### Download the pretrained model for COMET
+Some datasets are provided in the repo so there is no need to download.
+
+### Download pretrained models for COMET
 
 Please manually download the pretrained model from [here](https://drive.google.com/open?id=1FccEsYPUHnjzmX-Y5vjCBeyRt1pLo8FB) and untar it into `comet/pretrained_model`.
 
