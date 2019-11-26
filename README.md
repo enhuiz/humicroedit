@@ -59,10 +59,10 @@ Please manually download the pretrained model from [here](https://drive.google.c
 
 ## Preprocess
 
-Apply basic process on the sentence:
+Apply basic preprocess on the sentence:
 
 ```
-./data/process.py
+./data/preprocess.py
 ```
 
 Fetch COMET object given the subject over all relations (this step is not necessary):
