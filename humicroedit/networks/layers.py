@@ -199,24 +199,25 @@ class RandomMask(nn.Module):
     def forward(self, feed):
         feed['y'] = feed['x']
 
-        x, lengths = pad_packed_sequence(feed['x'], True)
+        if self.training:
+            x, lengths = pad_packed_sequence(feed['x'], True)
 
-        mask = pack_sequence([torch.rand(length).to(x.device) < self.p_mask
-                              for length in lengths], enforce_sorted=False)
+            mask = pack_sequence([torch.rand(length).to(x.device) < self.p_mask
+                                  for length in lengths], enforce_sorted=False)
 
-        feed['x'] = (PackedSequence(
-            feed['x'].data.masked_fill(mask.data, self.mask_index),
-            feed['x'].batch_sizes,
-            feed['x'].sorted_indices,
-            feed['x'].unsorted_indices
-        ).to(device=x.device))
+            feed['x'] = (PackedSequence(
+                feed['x'].data.masked_fill(mask.data, self.mask_index),
+                feed['x'].batch_sizes,
+                feed['x'].sorted_indices,
+                feed['x'].unsorted_indices
+            ).to(device=x.device))
 
-        feed['y'] = (PackedSequence(
-            feed['y'].data.masked_fill(~mask.data, self.ignore_index),
-            feed['y'].batch_sizes,
-            feed['y'].sorted_indices,
-            feed['y'].unsorted_indices
-        ).to(device=x.device))
+            feed['y'] = (PackedSequence(
+                feed['y'].data.masked_fill(~mask.data, self.ignore_index),
+                feed['y'].batch_sizes,
+                feed['y'].sorted_indices,
+                feed['y'].unsorted_indices
+            ).to(device=x.device))
 
         return feed
 
