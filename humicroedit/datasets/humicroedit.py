@@ -85,12 +85,11 @@ def interleave(*args):
 class HumicroeditDataset(Dataset):
     ignore_index = -100
 
-    def __init__(self, root, split, categorical=False):
+    def __init__(self, root, split):
         self.root = root
         self.split = split
         self.training = 'train' in split
         self.vocab = build_vocab(self.root)
-        self.categorical = categorical
         self.make_samples()
 
     def make_samples(self):
