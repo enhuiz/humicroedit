@@ -61,9 +61,9 @@ git clone --recursive https://github.com/enhuiz/humicroedit
 ./scripts/setup/comet.sh
 ```
 
-### Manual job
+### Download the pretrained model for COMET
 
-Please manually download the pretrained model from [here](https://drive.google.com/open?id=1FccEsYPUHnjzmX-Y5vjCBeyRt1pLo8FB) and untar it into comet/pretrained_model.
+Please manually download the pretrained model from [here](https://drive.google.com/open?id=1FccEsYPUHnjzmX-Y5vjCBeyRt1pLo8FB) and untar it into `comet/pretrained_model`.
 
 ## Preprocess
 
@@ -73,7 +73,7 @@ Apply basic process on the sentence:
 ./data/process.py
 ```
 
-Fetch comet object given the subject over all relations (this step is not necessary):
+Fetch COMET object given the subject over all relations (this step is not necessary):
 
 ```
 ./data/comet.py
