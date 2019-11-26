@@ -31,11 +31,10 @@ def get_opts():
     parser.add_argument('--name', type=str, default='transformer-baseline')
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=64)
-    parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--epochs', type=int, default=15)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--save-every', type=int, default=1)
-    parser.add_argument('--categorical', action='store_true')
     opts = parser.parse_args()
     return opts
 
@@ -114,6 +113,7 @@ def main():
                           collate_fn=ds.get_collate_fn())
 
     # build callbacks
+
     def load_model(status):
         if not ckpts:
             return
@@ -121,6 +121,7 @@ def main():
         epoch = int(Path(ckpt).stem)
         if epoch == opts.epochs:
             status.epoch = epoch + 1
+            print('{} already exists.'.format(ckpt))
         elif status.epoch < epoch:
             status.model.load_state_dict(torch.load(ckpt, map_location='cpu'))
             status.model.to(opts.device)

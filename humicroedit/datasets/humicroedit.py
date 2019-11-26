@@ -6,9 +6,8 @@ from functools import partial, lru_cache
 from collections import defaultdict
 
 import torch
-from torch.nn.utils.rnn import pack_sequence
 from torch.utils.data import Dataset
-from torch.nn.utils.rnn import pack_sequence
+from torch.nn.utils.rnn import pack_sequence, pad_sequence
 
 from humicroedit.datasets.vocab import Vocab
 
@@ -55,8 +54,12 @@ def load_corpus(root, split):
     df['original'] = df['original'].apply(process_sentence)
     df['edited'] = df['edited'].apply(process_sentence)
 
-    if 'meanGrade' not in df:
-        df['meanGrade'] = np.nan
+    training = 'train' in split
+
+    if training:
+        df['grade'] = df['grades'].apply(lambda s: list(map(int, str(s))))
+    else:
+        df['grade'] = df['edited'].apply(lambda _: [np.nan])
 
     return df
 
@@ -80,20 +83,24 @@ def interleave(*args):
 
 
 class HumicroeditDataset(Dataset):
-    def __init__(self, root, split):
+    ignore_index = -100
+
+    def __init__(self, root, split, categorical=False):
         self.root = root
         self.split = split
+        self.training = 'train' in split
         self.vocab = build_vocab(self.root)
+        self.categorical = categorical
         self.make_samples()
 
     def make_samples(self):
         df = load_corpus(self.root, self.split)
 
-        odf = df[['id', 'original', 'meanGrade']].copy()
-        odf['meanGrade'] = 0
+        odf = df[['id', 'original', 'grade']].copy()
+        odf['grade'] = odf['grade'].apply(lambda _: [0, 0, 0])
         original_samples = odf.values.tolist()
 
-        edf = df[['id', 'edited', 'meanGrade']].copy()
+        edf = df[['id', 'edited', 'grade']].copy()
         edited_samples = edf.values.tolist()
 
         assert len(original_samples) == len(edited_samples)
@@ -106,21 +113,32 @@ class HumicroeditDataset(Dataset):
     def __getitem__(self, index):
         id_, sentence, grade = self.samples[index]
         sentence = self.vocab.tokens2indices(sentence.strip().split())
-        sentence = torch.tensor(sentence).long()
-        return id_, sentence, grade
+        return {
+            'id': id_,
+            'sentence': sentence,
+            'grade': grade,
+        }
 
     def get_collate_fn(self):
+
         def collate_fn(batch):
-            batch = sorted(batch, key=lambda s: -len(s[1]))
-            ids = [sample[0] for sample in batch]
-            sentences = pack_sequence([sample[1] for sample in batch])
-            grades = torch.tensor([sample[2] for sample in batch])[:, None]
-            batch = {
-                'id': ids,
-                'x': sentences,
-                'y': grades
+            batch = sorted(batch, key=lambda s: -len(s['sentence']))
+
+            id_ = [sample['id'] for sample in batch]
+
+            x = pack_sequence([torch.tensor(sample['sentence'])
+                               for sample in batch])
+
+            y = pack_sequence([torch.tensor(sample['grade'])
+                               for sample in batch],
+                              enforce_sorted=False)
+
+            return {
+                'id': id_,
+                'x': x,
+                'y': y,
             }
-            return batch
+
         return collate_fn
 
     def __len__(self):

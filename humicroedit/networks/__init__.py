@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 from humicroedit.networks.layers import XApplier, XYApplier, TemporalPooling, Serial, PrependCLS
 from humicroedit.networks.encoders import LSTMEncoder, TransformerEncoder
-from humicroedit.networks.losses import MSELoss, CrossEntropyLoss
+from humicroedit.networks.losses import MSELoss, SoftCrossEntropyLoss
 
 
 def get(name):
@@ -29,7 +29,7 @@ def get(name):
                 XApplier(LSTMEncoder(num_layers, dim)),
                 XApplier(TemporalPooling(lambda x: x[..., 0])),
                 XApplier(nn.Linear(dim, 4)),  # 4 for 4 different grades
-                CrossEntropyLoss(),
+                SoftCrossEntropyLoss(),
             )
     elif 'transformer-' in name:
         name = name.replace('transformer-', '')
@@ -50,7 +50,7 @@ def get(name):
                 TransformerEncoder(num_layers, num_heads, dim, rpe_k=4),
                 XApplier(TemporalPooling(lambda x: x[..., 0])),
                 XApplier(nn.Linear(dim, 4)),
-                CrossEntropyLoss(),
+                SoftCrossEntropyLoss(),
             )
     else:
         raise Exception("Unknown model: {}.".format(name))
