@@ -66,7 +66,7 @@ def main():
     def save_results(status):
         nonlocal results
         ids = status.out['id']
-        preds = status.out['x'].tolist()
+        preds = status.out['pred'].tolist()
         results += list(zip(ids, preds))
         df = pd.DataFrame(results, columns=['id', 'pred'])
         # force the pred inside its domain
