@@ -26,7 +26,6 @@ def sequence_mean(packed_sequence, apply=lambda x: x, padding_value=-100):
 
 
 class MSELoss(nn.Module):
-
     def __init__(self):
         super().__init__()
 
@@ -40,7 +39,6 @@ class MSELoss(nn.Module):
 
 
 class SoftCrossEntropyLoss(nn.Module):
-
     def __init__(self, num_classes=4):
         super().__init__()
         self.num_classes = num_classes
