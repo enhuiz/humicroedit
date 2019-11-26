@@ -118,10 +118,7 @@ def atomic_generate(args, split):
 
     for i, row in tqdm.tqdm(list(df.iterrows())):
         # original sentence
-        original = re.sub(r'<swap2>.+<swap3>', '', row['text'])
-        original = original.replace('<swap1>', '')
-        original = ' '.join(original.split())
-
+        original = re.sub(r'<swap1> (.+) <swap2>.+<swap3>', r'\1', row['text'])
         result = get_atomic_sequence(original, model, sampler,
                                      data_loader, text_encoder, args.category)
 
@@ -129,10 +126,7 @@ def atomic_generate(args, split):
             df.at[i, 'original-' + key] = json.dumps(result[key]['beams'])
 
         # edited sentence
-        edited = re.sub(r'<swap1>.+<swap2>', '', row['text'])
-        edited = edited.replace('<swap3>', '')
-        edited = ' '.join(edited.split())
-
+        edited = re.sub(r'<swap1>.+<swap2> (.+) <swap3>', r'\1', row['text'])
         result = get_atomic_sequence(edited, model, sampler,
                                      data_loader, text_encoder, args.category)
 
