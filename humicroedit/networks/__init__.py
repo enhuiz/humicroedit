@@ -8,9 +8,9 @@ from humicroedit.datasets.vocab import Vocab
 
 
 def get(name):
-    dim = 32
+    dim = 512
     num_layers = 4
-    vocab_size = len(Vocab.specials) + 5000
+    vocab_size = len(Vocab.specials) + 10000
 
     if 'lstm-' in name:
         name = name.replace('lstm-', '')

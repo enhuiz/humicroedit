@@ -14,7 +14,7 @@ class Vocab():
     def special2index(e):
         return Vocab.specials.index(e)
 
-    def __init__(self, corpus: [[str]], max_size=5000):
+    def __init__(self, corpus: [[str]], max_size=10000):
         self.counter = Counter([w for s in corpus for w in s])
 
         for special in self.specials:
