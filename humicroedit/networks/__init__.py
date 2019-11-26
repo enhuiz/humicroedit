@@ -4,12 +4,13 @@ import torch.nn.functional as F
 from humicroedit.networks.layers import XApplier, XYApplier, TemporalPooling, Serial, PrependCLS
 from humicroedit.networks.encoders import LSTMEncoder, TransformerEncoder
 from humicroedit.networks.losses import MSELoss, SoftCrossEntropyLoss
+from humicroedit.datasets.vocab import Vocab
 
 
 def get(name):
-    dim = 128
+    dim = 32
     num_layers = 4
-    vocab_size = 5005
+    vocab_size = len(Vocab.specials) + 5000
 
     if 'lstm-' in name:
         name = name.replace('lstm-', '')

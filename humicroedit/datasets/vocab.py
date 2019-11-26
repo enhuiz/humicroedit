@@ -5,8 +5,9 @@ from operator import itemgetter
 
 
 class Vocab():
-    specials = ['<pad>', '<unk>', '<s>', '</s>', '<cls>']
-    pad = specials[0]
+    specials = ['<pad>', '<unk>', '<s>', '</s>',
+                '<cls>', '<swap1>', '<swap2>', '<swap3>']
+
     unk = specials[1]
 
     @staticmethod
@@ -15,6 +16,10 @@ class Vocab():
 
     def __init__(self, corpus: [[str]], max_size=5000):
         self.counter = Counter([w for s in corpus for w in s])
+
+        for special in self.specials:
+            del self.counter[special]
+
         most_common = map(itemgetter(0), self.counter.most_common(max_size))
         self.words = sorted(set(most_common))
         self.itos = self.specials + self.words
