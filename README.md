@@ -46,16 +46,40 @@ $ rm semeval-2020-task-7-data.zip
     └── train.py                        <- all training calls this script
 ```
 
-## Dependencies installation
+## Setup
+
+### Clone the project
 
 ```
-pip3 install -r requirements.txt
+git clone --recursive https://github.com/enhuiz/humicroedit 
 ```
 
+### Install dependencies & download dataset
+
+```
+./scripts/setup/humicroedit.sh
+./scripts/setup/comet.sh
+```
+
+### Manual job
+
+Please manually download the pretrained model from [here](https://drive.google.com/open?id=1FccEsYPUHnjzmX-Y5vjCBeyRt1pLo8FB) and untar it into comet/pretrained_model.
+
+## Preprocess
+
+Apply basic process on the sentence:
+
+```
+./data/process.py
+```
+
+Fetch comet object given the subject over all relations (this step is not necessary):
+
+```
+./data/comet.py
+```
 
 ## Train & test
-
-After downloading the dataset, run:
 
 - Train:
 
