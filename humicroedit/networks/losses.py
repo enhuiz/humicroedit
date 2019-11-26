@@ -31,7 +31,7 @@ class MSELoss(nn.Module):
 
     def forward(self, feed, **_):
         feed['pred'] = feed['x'].flatten()
-        feed['loss'] = F.mse_loss(feed['x'], sequence_mean(feed['y']))
+        feed['loss'] = F.mse_loss(feed['pred'], sequence_mean(feed['y']))
         return feed
 
 
