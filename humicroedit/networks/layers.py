@@ -157,22 +157,20 @@ class SublayerConnection(nn.Module):
         return x + self.dropout(self.sublayer(*applier(self.norm(x))))
 
 
-class TemporalPooling(nn.Module):
-    def __init__(self, pool):
+class TemporalSelection(nn.Module):
+    def __init__(self, select):
         super().__init__()
-        self.pool = pool
+        self.select = select
 
     def forward(self, x):
-        """
-        Args:
-            x: query (*, len, dim)
-        """
         values, lengths = pad_packed_sequence(x, True)
-        average = torch.stack([
-            self.pool(value[None, :length].permute(0, 2, 1)).flatten()
-            for value, length in zip(values, lengths)
-        ], dim=0)
-        return average
+        packed = pack_sequence([
+            (self.select(value[None, :length].permute(0, 2, 1), i)
+             .permute(0, 2, 1)
+             .squeeze(0))
+            for i, (value, length) in enumerate(zip(values, lengths))
+        ], enforce_sorted=False)
+        return packed
 
 
 class PrependCLS(nn.Module):
@@ -188,6 +186,39 @@ class PrependCLS(nn.Module):
              for value, length in zip(values, lengths)]
         x = pack_sequence(x, False)
         return x
+
+
+class RandomMask(nn.Module):
+    mask_index = Vocab.special2index('<mask>')
+    ignore_index = -100
+
+    def __init__(self, p_mask=0.15):
+        super().__init__()
+        self.p_mask = p_mask
+
+    def forward(self, feed):
+        feed['y'] = feed['x']
+
+        x, lengths = pad_packed_sequence(feed['x'], True)
+
+        mask = pack_sequence([torch.rand(length).to(x.device) < self.p_mask
+                              for length in lengths], enforce_sorted=False)
+
+        feed['x'] = (PackedSequence(
+            feed['x'].data.masked_fill(mask.data, self.mask_index),
+            feed['x'].batch_sizes,
+            feed['x'].sorted_indices,
+            feed['x'].unsorted_indices
+        ).to(device=x.device))
+
+        feed['y'] = (PackedSequence(
+            feed['y'].data.masked_fill(~mask.data, self.ignore_index),
+            feed['y'].batch_sizes,
+            feed['y'].sorted_indices,
+            feed['y'].unsorted_indices
+        ).to(device=x.device))
+
+        return feed
 
 
 class XApplier(nn.Module):
@@ -212,14 +243,27 @@ class XApplier(nn.Module):
 
 
 class XYApplier(nn.Module):
-    def __init__(self, layer, key_out):
+    def __init__(self, layer, key_out, broadcast):
         super().__init__()
         self.layer = layer
         self.key_out = key_out
+        self.broadcast = broadcast
 
     def forward(self, feed, **_):
-        feed[self.key_out] = self.layer(feed['x'], feed['y'])
+        if self.broadcast:
+            feed[self.key_out] = self.layer(feed['x'].data, feed['y'].data)
+        else:
+            feed[self.key_out] = self.layer(feed['x'], feed['y'])
         return feed
+
+
+class Lambda(nn.Module):
+    def __init__(self, lambd):
+        super().__init__()
+        self.lambd = lambd
+
+    def forward(self, feed):
+        return self.lambd(feed)
 
 
 class Serial(nn.Module):
