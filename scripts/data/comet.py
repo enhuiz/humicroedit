@@ -94,7 +94,7 @@ def get_atomic_sequence(input_event, model, sampler, data_loader, text_encoder, 
 def atomic_generate(args, split):
     in_path = os.path.abspath(os.path.join(args.root,
                                            split + '.preprocessed.csv'))
-    out_path = in_path.replace('.csv', '.kg2.csv')
+    out_path = in_path.replace('.csv', '.kg.csv')
     df = pd.read_csv(in_path)
 
     with working_directory('comet'):
