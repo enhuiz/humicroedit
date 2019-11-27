@@ -7,8 +7,11 @@ import argparse
 import pandas as pd
 import tqdm
 import spacy
+from pandarallel import pandarallel
 
 nlp = spacy.load('en')
+
+pandarallel.initialize(progress_bar=True)
 
 
 def get_args():
@@ -49,7 +52,7 @@ def process(df):
     del df['original']
 
     # process the sentences
-    df['text'] = df['text'].progress_apply(process_sentence)
+    df['text'] = df['text'].parallel_apply(process_sentence)
 
     df['text'] = df['text'].apply(lambda s: s.replace('swapiii', '<swap3>')
                                   .replace('swapii', '<swap2>')
