@@ -7,7 +7,7 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, dim, dropout, max_len=4096):
+    def __init__(self, dim, dropout=0.1, max_len=4096):
         assert dim % 2 == 0
         super().__init__()
 
@@ -24,7 +24,5 @@ class PositionalEncoding(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        self.before_pe = x.detach().cpu()
         x = x + self.pe[:x.shape[1]]
-        self.after_pe = x.detach().cpu()
         return self.dropout(x)
