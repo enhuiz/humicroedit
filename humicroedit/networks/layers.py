@@ -210,6 +210,8 @@ class RandomMask(nn.Module):
         indices = np.arange(len(value))[nonspecial]
         np.random.shuffle(indices)
         indices = indices[:math.ceil(len(value) * self.p_mask)]
+        if len(indices) == 0:
+            indices = [0]  # for the bad case where all tokens are specials
         mask = torch.zeros(len(value), device=value.device).bool()
         mask[indices] = True
         return mask
