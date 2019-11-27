@@ -92,7 +92,7 @@ Fetch COMET object given the subject over all relations (this step is not necess
 - 2019-11-26
   1. Add soft cross entropy loss.
   1. Add lemmatization using [spacy](https://spacy.io/).
-  2. Use COMMEt model trained on ATOMIC to relate our data to the corresponding object in the knowledge graph, see `data/humicroedit/task-1/*.kg.csv`.
+  2. Use COMET model trained on ATOMIC to relate our data to the corresponding object in the knowledge graph, see `data/humicroedit/task-1/*.kg.csv`.
   3. Add BERT pretraining (only the mask) part.
 
 
