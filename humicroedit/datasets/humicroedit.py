@@ -40,25 +40,18 @@ def build_vocab(root):
 class HumicroeditDataset(Dataset):
     ignore_index = -100
 
-    def __init__(self, root, split, pretraining=False):
+    def __init__(self, root, split):
         self.root = root
         self.split = split
         self.training = 'train' in split
-        self.pretraining = pretraining
         self.vocab = build_vocab(self.root)
         self.make_samples()
 
     def load_corpus(self):
         return load_corpus(self.root, self.split)
 
-    @staticmethod
-    def extract_original(s):
-        return re.sub(r'<swap1> (.+) <swap2>.+<swap3>', r'\1', s)
-
     def make_samples(self):
         df = load_corpus(self.root, self.split)
-        if self.pretraining:
-            df['text'] = df['text'].apply(self.extract_original)
         self.samples = df[['id', 'text', 'grade']].values
 
     def __getitem__(self, index):

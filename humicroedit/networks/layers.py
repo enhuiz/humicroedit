@@ -157,35 +157,23 @@ class SublayerConnection(nn.Module):
         return x + self.dropout(self.sublayer(*applier(self.norm(x))))
 
 
-class TemporalSelection(nn.Module):
-    def __init__(self, select):
-        super().__init__()
-        self.select = select
-
-    def forward(self, x):
-        values, lengths = pad_packed_sequence(x, True)
-        packed = pack_sequence([
-            (self.select(value[None, :length].permute(0, 2, 1), i)
-             .permute(0, 2, 1)
-             .squeeze(0))
-            for i, (value, length) in enumerate(zip(values, lengths))
-        ], enforce_sorted=False)
-        return packed
-
-
 class PrependCLS(nn.Module):
-    cls = Vocab.special2index('<cls>')
+    cls_i = Vocab.special2index('<cls>')
 
     def __init__(self):
         super().__init__()
 
-    def forward(self, x):
-        values, lengths = pad_packed_sequence(x, True)
-        x = [torch.cat([torch.tensor([self.cls]).to(value.device),
-                        value[:length]])
-             for value, length in zip(values, lengths)]
-        x = pack_sequence(x, False)
-        return x
+    def forward(self, feed):
+        values, lengths = pad_packed_sequence(feed['x'], batch_first=True)
+
+        cls = torch.tensor([self.cls_i], device=values.device)
+
+        feed['x'] = pack_sequence([
+            torch.cat([cls, value[:length]])
+            for value, length in zip(values, lengths)
+        ], enforce_sorted=False)
+
+        return feed
 
 
 class RandomMask(nn.Module):
@@ -196,65 +184,123 @@ class RandomMask(nn.Module):
         super().__init__()
         self.p_mask = p_mask
 
+    def generate_mask(self, value):
+        # don't mask the special characters, including <swap*> and <cls>
+        nonspecial = (value >= len(Vocab.specials)).cpu().numpy()
+        indices = np.arange(len(value))[nonspecial]
+        np.random.shuffle(indices)
+        indices = indices[:int(len(value) * self.p_mask)]
+        mask = torch.zeros(len(value), device=value.device).bool()
+        mask[indices] = True
+        return mask
+
     def forward(self, feed):
-        feed['y'] = feed['x']
+        feed['masked'] = feed['x']
 
         if self.training:
-            x, lengths = pad_packed_sequence(feed['x'], True)
+            values, lengths = pad_packed_sequence(feed['x'], True)
 
-            mask = pack_sequence([torch.rand(length).to(x.device) < self.p_mask
-                                  for length in lengths], enforce_sorted=False)
+            mask = pack_sequence([
+                self.generate_mask(value[:length])
+                for value, length in zip(values, lengths)
+            ], enforce_sorted=False)
 
             feed['x'] = (PackedSequence(
                 feed['x'].data.masked_fill(mask.data, self.mask_index),
                 feed['x'].batch_sizes,
                 feed['x'].sorted_indices,
                 feed['x'].unsorted_indices
-            ).to(device=x.device))
+            ).to(device=values.device))
 
-            feed['y'] = (PackedSequence(
-                feed['y'].data.masked_fill(~mask.data, self.ignore_index),
-                feed['y'].batch_sizes,
-                feed['y'].sorted_indices,
-                feed['y'].unsorted_indices
-            ).to(device=x.device))
+            feed['masked'] = (PackedSequence(
+                feed['masked'].data.masked_fill(~mask.data, self.ignore_index),
+                feed['masked'].batch_sizes,
+                feed['masked'].sorted_indices,
+                feed['masked'].unsorted_indices
+            ).to(device=values.device))
 
         return feed
 
 
-class XApplier(nn.Module):
-    def __init__(self, layer, broadcast=False, key_out='x'):
+class TemporalSelection(nn.Module):
+    def __init__(self, select):
         super().__init__()
-        self.layer = layer
-        self.broadcast = broadcast
-        self.key_out = key_out
+        self.select = select
 
-    def forward(self, feed, **_):
-        if self.broadcast:
-            data = feed['x'].data
-            data = self.layer(data)
-            feed[self.key_out] = (PackedSequence(data,
-                                                 feed['x'].batch_sizes,
-                                                 feed['x'].sorted_indices,
-                                                 feed['x'].unsorted_indices)
-                                  .to(device=data.device))
-        else:
-            feed[self.key_out] = self.layer(feed['x'])
+    def forward(self, feed):
+        values, lengths = pad_packed_sequence(feed['x'], True)
+        feed['x'] = pack_sequence([
+            self.select(value[:length], i, feed)
+            for i, (value, length) in enumerate(zip(values, lengths))
+        ], enforce_sorted=False)
+        return
+
+
+class SelectCLS(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, feed):
+        values = pad_packed_sequence(feed['x'], True)[0]
+        # select token 0 since cls should always be the first token
+        feed['x'] = torch.stack([value[0] for value in values], dim=0)
         return feed
 
 
-class XYApplier(nn.Module):
-    def __init__(self, layer, key_out, broadcast):
+class SelectMasked(nn.Module):
+    ignore_index = RandomMask.ignore_index
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, feed):
+        values, lengths = pad_packed_sequence(feed['masked'], True)
+        indexers = [(value[:length] != self.ignore_index).nonzero().flatten()
+                    for value, length in zip(values, lengths)]
+
+        feed['masked'] = pack_sequence([
+            value[indexer]
+            for value, indexer in zip(values, indexers)
+        ], enforce_sorted=False)
+
+        values = pad_packed_sequence(feed['x'], True)[0]
+        feed['x'] = pack_sequence([
+            value[indexer]
+            for value, indexer in zip(values, indexers)
+        ], enforce_sorted=False)
+
+        return feed
+
+
+class Applier(nn.Module):
+    def __init__(self, layer, k_in='x', k_out='x', broadcast=False):
         super().__init__()
         self.layer = layer
-        self.key_out = key_out
+        self.k_in = k_in
+        self.k_out = k_out
         self.broadcast = broadcast
 
     def forward(self, feed, **_):
-        if self.broadcast:
-            feed[self.key_out] = self.layer(feed['x'].data, feed['y'].data)
+        if isinstance(self.k_in, str):
+            if self.broadcast:
+                data = feed[self.k_in].data
+                data = self.layer(data)
+                feed[self.k_out] = \
+                    (PackedSequence(data,
+                                    feed[self.k_in].batch_sizes,
+                                    feed[self.k_in].sorted_indices,
+                                    feed[self.k_in].unsorted_indices)
+                     .to(device=data.device))
+            else:
+                feed[self.k_out] = \
+                    self.layer(feed[self.k_in])
         else:
-            feed[self.key_out] = self.layer(feed['x'], feed['y'])
+            if self.broadcast:
+                feed[self.k_out] = \
+                    self.layer(*[feed[k].data for k in self.k_in])
+            else:
+                feed[self.k_out] = \
+                    self.layer(*[feed[k].data for k in self.k_in])
         return feed
 
 

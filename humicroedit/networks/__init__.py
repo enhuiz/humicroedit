@@ -5,9 +5,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from humicroedit.networks.layers import XApplier, XYApplier, Serial, PrependCLS, RandomMask, TemporalSelection
+from humicroedit.networks.layers import Applier, Serial, PrependCLS, RandomMask, SelectCLS, SelectMasked, Parallel, Lambda
 from humicroedit.networks.encoders import LSTMEncoder, TransformerEncoder
-from humicroedit.networks.losses import MSELoss, SoftCrossEntropyLoss, BERTCrossEntropyLoss
+from humicroedit.networks.losses import MSELoss, SoftCrossEntropyLoss
 from humicroedit.datasets.vocab import Vocab
 
 
@@ -20,23 +20,23 @@ def get(name):
         name = name.replace('lstm-', '')
         if name == 'baseline':
             model = Serial(
-                XApplier(PrependCLS()),
-                XApplier(nn.Embedding(vocab_size, dim), broadcast=True),
-                XApplier(LSTMEncoder(num_layers, dim)),
+                PrependCLS(),
+                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
+                Applier(LSTMEncoder(num_layers, dim)),
                 # select CLS only
-                XApplier(TemporalSelection(lambda x, _: x[..., :1])),
-                XApplier(nn.Linear(dim, 1), broadcast=True),
+                SelectCLS(),
+                Applier(nn.Linear(dim, 1)),
                 MSELoss(),
             )
         elif name == 'baseline-ce':
             model = Serial(
-                XApplier(PrependCLS()),
-                XApplier(nn.Embedding(vocab_size, dim), broadcast=True),
-                XApplier(LSTMEncoder(num_layers, dim)),
+                PrependCLS(),
+                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
+                Applier(LSTMEncoder(num_layers, dim)),
                 # select CLS only
-                XApplier(TemporalSelection(lambda x, _: x[..., :1])),
+                SelectCLS(),
                 # 4 for 4 different grades
-                XApplier(nn.Linear(dim, 4), broadcast=True),
+                Applier(nn.Linear(dim, 4)),
                 SoftCrossEntropyLoss(),
             )
     elif 'transformer-' in name:
@@ -44,33 +44,52 @@ def get(name):
         num_heads = 8
         if name == 'baseline':
             model = Serial(
-                XApplier(PrependCLS()),
-                XApplier(nn.Embedding(vocab_size, dim), broadcast=True),
+                PrependCLS(),
+                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
                 TransformerEncoder(num_layers, num_heads, dim, rpe_k=4),
                 # select CLS only
-                XApplier(TemporalSelection(lambda x, _: x[..., :1])),
-                XApplier(nn.Linear(dim, 1), broadcast=True),
+                SelectCLS(),
+                Applier(nn.Linear(dim, 1)),
                 MSELoss(),
             )
         elif name == 'baseline-ce':
             model = Serial(
-                XApplier(PrependCLS()),
-                XApplier(nn.Embedding(vocab_size, dim), broadcast=True),
+                PrependCLS(),
+                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
                 TransformerEncoder(num_layers, num_heads, dim, rpe_k=4),
                 # select CLS only
-                XApplier(TemporalSelection(lambda x, _: x[..., :1])),
-                XApplier(nn.Linear(dim, 4), broadcast=True),
+                SelectCLS(),
+                Applier(nn.Linear(dim, 4)),
                 SoftCrossEntropyLoss(),
             )
-        elif name == 'baseline-pretraining':
+        elif name == 'bert':
             p_mask = 0.15
 
             model = Serial(
+                PrependCLS(),
                 RandomMask(p_mask),
-                XApplier(nn.Embedding(vocab_size, dim), broadcast=True),
+                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
                 TransformerEncoder(num_layers, num_heads, dim, rpe_k=4),
-                XApplier(nn.Linear(dim, vocab_size), broadcast=True),
-                XYApplier(nn.CrossEntropyLoss(), 'loss', broadcast=True),
+                Parallel(
+                    Serial(
+                        SelectCLS(),
+                        Applier(nn.Linear(dim, 4)),
+                        SoftCrossEntropyLoss(),
+                    ),
+                    Serial(
+                        SelectMasked(),
+                        Applier(nn.Linear(dim, vocab_size), broadcast=True),
+                        Applier(nn.CrossEntropyLoss(),
+                                k_in=['x', 'masked'],
+                                k_out='loss',
+                                broadcast=True),
+                    )
+                ),
+                Lambda(lambda feeds: {
+                    'pred': feeds[0]['pred'],
+                    'x': feeds[0]['x'],
+                    'loss': torch.stack([feeds[0]['loss'], feeds[1]['loss']]),
+                }),
             )
     else:
         raise Exception("Unknown model: {}.".format(name))

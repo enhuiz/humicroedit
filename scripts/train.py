@@ -41,8 +41,9 @@ def get_opts():
 
 def log(status):
     epoch = status.epoch
-    loss = np.mean(status.losses)
-    msg = 'Epoch {} loss {:.4g}'.format(epoch, loss)
+    loss = np.mean(status.losses, axis=0)
+    with np.printoptions(precision=4, suppress=True):
+        msg = 'Epoch {} loss {}'.format(epoch, loss)
     status.pbar.set_description(msg)
 
 
@@ -76,12 +77,12 @@ def train(model, dataloader, optimizer, epochs,
             call(on_iteration_start)(status)
 
             out = model(feed=batch)
-            out['loss'].backward()
+            out['loss'].sum().backward()
             optimizer.step()
             optimizer.zero_grad()
 
             status.out = out
-            status.losses.append(out['loss'].item())
+            status.losses.append(out['loss'].detach().cpu().numpy())
             call(on_iteration_end)(status)
 
         call(on_epoch_end)(status)
@@ -95,7 +96,7 @@ def main():
     ckpts = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))
 
     # build dataset
-    ds = HumicroeditDataset(opts.root, 'train', 'pretraining' in opts.name)
+    ds = HumicroeditDataset(opts.root, 'train')
 
     num_train = int(len(ds) * 0.9)
 
@@ -137,15 +138,18 @@ def main():
             torch.save(model.state_dict(), path)
 
     def validate(status):
-        mses = []
+        losses = []
         test(status.model,
              valid_dl,
              on_iteration_end=[
-                 lambda status: mses.append(status.out['loss'].item())
+                 lambda status: losses.append(
+                     status.out['loss'].detach().cpu().numpy()
+                 )
              ],
              pbar=lambda dl: dl)
         status.model.train()
-        print('Loss on valid set: {:.4g}'.format(np.mean(mses)))
+        with np.printoptions(precision=4, suppress=True):
+            print('Loss on valid set: {}'.format(np.mean(losses, axis=0)))
 
     # build model
     model = networks.get(opts.name).to(opts.device)

@@ -30,9 +30,6 @@ class MSELoss(nn.Module):
         super().__init__()
 
     def forward(self, feed, **_):
-        feed['x'], lengths = pad_packed_sequence(feed['x'], batch_first=True)
-        assert (lengths == 1).all()
-
         feed['pred'] = feed['x'].flatten()
         feed['loss'] = F.mse_loss(feed['pred'], sequence_mean(feed['y']))
         return feed
@@ -44,9 +41,6 @@ class SoftCrossEntropyLoss(nn.Module):
         self.num_classes = num_classes
 
     def forward(self, feed, **_):
-        feed['x'], lengths = pad_packed_sequence(feed['x'], batch_first=True)
-        assert (lengths == 1).all()
-
         feed['pred'] = feed['x'].softmax(dim=1) @ \
             torch.arange(self.num_classes).to(feed['x'].device).float()
 
