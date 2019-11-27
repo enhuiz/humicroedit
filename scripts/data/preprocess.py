@@ -34,7 +34,7 @@ def process_sentence(s):
     # replace % with percent
     s = s.replace('%', 'percent')
     # remove extra space
-    s = ' '.join(s.split(' '))
+    s = ' '.join(s.split())
     return s
 
 
