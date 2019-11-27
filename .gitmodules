@@ -1,9 +1,6 @@
 [submodule "semeval-2020-task-7-humicroedit"]
 	path = official
 	url = https://github.com/n-hossain/semeval-2020-task-7-humicroedit
-[submodule "data/ASER"]
-	path = aser
-	url = https://github.com/HKUST-KnowComp/ASER.git
 [submodule "comet-commonsense"]
 	path = comet
 	url = https://github.com/atcbosselut/comet-commonsense.git
