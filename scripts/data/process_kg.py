@@ -10,6 +10,10 @@ import spacy
 
 nlp = spacy.load('en')
 
+from pandarallel import pandarallel
+
+pandarallel.initialize(progress_bar=True)
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -42,18 +46,19 @@ def process(df):
     cols = [col for col in df.columns
             if 'original-' in col or 'edited-' in col]
 
-    def tokenize(col): return '<{}>'.format(col.lower())
+    def tokenize(col):
+        return '<{}>'.format(col.lower())
 
     def process_row(row):
         text = [row['text']]
         for col in cols:
             sentences = eval(row[col])
-            s = next((s for s in sentences if s != 'none'), 'none')
+            s = next((s for s in sentences if s != 'none' and s != ""), 'none')
             text.append(tokenize(col) + ' ' + process_sentence(s))
         text = ' '.join(text)
         return text
 
-    df['text'] = df.progress_apply(process_row, axis=1)
+    df['text'] = df.parallel_apply(process_row, axis=1)
 
     for col in cols:
         del df[col]
@@ -63,7 +68,7 @@ def process(df):
 
 def main():
     args = get_args()
-    tqdm.tqdm.pandas()
+
     for split in ['train', 'dev']:
         path = os.path.join(args.root,
                             '{}.preprocessed.kg.csv'.format(split))
