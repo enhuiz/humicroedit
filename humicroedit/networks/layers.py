@@ -157,6 +157,26 @@ class SublayerConnection(nn.Module):
         return x + self.dropout(self.sublayer(*applier(self.norm(x))))
 
 
+class TokenSegmentEmbedding(nn.Module):
+    sep_i = Vocab.special2index('<sep>')
+
+    def __init__(self, dim, num_toks, num_segs):
+        super().__init__()
+        self.tok_emb = nn.Embedding(num_toks, dim)
+        self.seg_emb = nn.Embedding(num_segs, dim)
+
+    def forward(self, feed):
+        values, lengths = pad_packed_sequence(feed['x'], True, -1)
+
+        feed['x'] = pack_sequence([
+            self.tok_emb(value[:length]) +
+            self.seg_emb(torch.cumsum(value[:length] == self.sep_i, dim=0))
+            for value, length in zip(values, lengths)
+        ], enforce_sorted=False)
+
+        return feed
+
+
 class PrependCLS(nn.Module):
     cls_i = Vocab.special2index('<cls>')
 

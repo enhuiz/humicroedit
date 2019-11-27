@@ -5,16 +5,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_packed_sequence
 
-from humicroedit.networks.layers import Applier, Serial, PrependCLS, RandomMask, SelectCLS, SelectMasked, Parallel, Lambda
+from humicroedit.networks.layers import Applier, Serial, PrependCLS, RandomMask, SelectCLS, SelectMasked, Parallel, Lambda, TokenSegmentEmbedding
 from humicroedit.networks.encoders import LSTMEncoder, TransformerEncoder
 from humicroedit.networks.losses import MSELoss, SoftCrossEntropyLoss
 from humicroedit.datasets.vocab import Vocab
 
 
 def get(name):
-    dim = 512
+    dim = 64
     num_layers = 4
-    vocab_size = len(Vocab.specials) + 10000
+    vocab_size = len(Vocab.specials) + Vocab.max_size
+    num_segments = 19
 
     framework, context, loss = name.split('-')[:3]
 
@@ -24,7 +25,7 @@ def get(name):
             Applier(LSTMEncoder(num_layers, dim)),
         ]
     elif context == 'transformer':
-        num_heads = 8
+        num_heads = 4
         rpe_k = 0
         context_layers = [
             TransformerEncoder(num_layers, num_heads, dim, rpe_k=rpe_k),
@@ -51,7 +52,7 @@ def get(name):
     if framework == 'baseline':
         model = [
             PrependCLS(),
-            Applier(nn.Embedding(vocab_size, dim), broadcast=True),
+            TokenSegmentEmbedding(dim, vocab_size, num_segments),
             *context_layers,
             # select CLS only
             SelectCLS(),
@@ -62,7 +63,7 @@ def get(name):
         model = Serial(
             PrependCLS(),
             RandomMask(p_mask),
-            Applier(nn.Embedding(vocab_size, dim), broadcast=True),
+            TokenSegmentEmbedding(dim, vocab_size, num_segments),
             *context_layers,
             Parallel(
                 Serial(

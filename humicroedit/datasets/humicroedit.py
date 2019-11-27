@@ -16,8 +16,13 @@ from humicroedit.datasets.vocab import Vocab
 def load_corpus(root, split, use_kg=False):
     filename = '{}.preprocessed{}.csv'.format(
         split, '.kg.processed' if use_kg else '')
+
     path = os.path.join(root, filename)
     df = pd.read_csv(path)
+
+    if use_kg:
+        sub = partial(re.sub, r'<(original|edited)-.+?>', r'<sep>')
+        df['text'] = df['text'].apply(sub)
 
     if 'grades' in df.columns:
         df['grade'] = df['grades'].apply(lambda s: list(map(int, str(s))))
@@ -49,6 +54,7 @@ class HumicroeditDataset(Dataset):
         self.use_kg = use_kg
         self.vocab = build_vocab(self.root)
         self.make_samples()
+        print(self.vocab)
 
     def load_corpus(self):
         return load_corpus(self.root, self.split, self.use_kg)
@@ -59,10 +65,12 @@ class HumicroeditDataset(Dataset):
 
     def __getitem__(self, index):
         id_, sentence, grades = self.samples[index]
-        indices = self.vocab.tokens2indices(sentence.strip().split())
+        tokens = sentence.strip().split()
+        indices = self.vocab.tokens2indices(tokens)
+
         return {
             'id': id_,
-            'tokens': sentence.strip().split(),
+            'tokens': tokens,
             'indices': indices,
             'grades': grades,
         }
@@ -92,4 +100,10 @@ class HumicroeditDataset(Dataset):
         return len(self.samples)
 
     def __str__(self):
-        return '{}\nExamples: {}'.format(self.vocab, self.samples[:2])
+        return '{}\nSamples: {}'.format(self.vocab, [
+            [
+                item
+                for sample in self.samples[:2]
+                for item in sample
+            ]
+        ])

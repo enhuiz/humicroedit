@@ -10,17 +10,21 @@ class Vocab():
 
     unk = specials[1]
 
+    max_size = 8000
+
     @staticmethod
     def special2index(e):
         return Vocab.specials.index(e)
 
-    def __init__(self, corpus: [[str]], max_size=10000):
+    def __init__(self, corpus: [[str]]):
         self.counter = Counter([w for s in corpus for w in s])
 
         for special in self.specials:
             del self.counter[special]
 
-        most_common = map(itemgetter(0), self.counter.most_common(max_size))
+        most_common = map(itemgetter(0),
+                          self.counter.most_common(self.max_size))
+
         self.words = sorted(set(most_common))
         self.itos = self.specials + self.words
         self.stoi = {w: i for i, w in enumerate(self.itos)}
