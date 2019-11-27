@@ -189,7 +189,7 @@ class RandomMask(nn.Module):
         nonspecial = (value >= len(Vocab.specials)).cpu().numpy()
         indices = np.arange(len(value))[nonspecial]
         np.random.shuffle(indices)
-        indices = indices[:int(len(value) * self.p_mask)]
+        indices = indices[:math.ceil(len(value) * self.p_mask)]
         mask = torch.zeros(len(value), device=value.device).bool()
         mask[indices] = True
         return mask
