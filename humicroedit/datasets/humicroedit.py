@@ -78,10 +78,11 @@ class HumicroeditDataset(Dataset):
 
     def __init__(self, root, split, use_kg=False):
         self.root = root
-        self.split = split
+        self.split = split.replace('-small', '')
         self.training = 'train' in split
         self.use_kg = use_kg
         self.vocab = build_vocab(self.root)
+        self.small = 'small' in split
         self.make_samples()
         print(self.vocab)
 
@@ -90,6 +91,8 @@ class HumicroeditDataset(Dataset):
 
     def make_samples(self):
         df = load_corpus(self.root, self.split, self.use_kg)
+        if self.small:
+            df = df.head(500)
         self.samples = df[['id', 'text', 'grade']].values
 
     def __getitem__(self, index):
