@@ -10,7 +10,7 @@ class Vocab():
 
     unk = specials[1]
 
-    max_size = 8000
+    max_size = 10000
 
     @staticmethod
     def special2index(e):
@@ -59,3 +59,15 @@ class Vocab():
     def __iter__(self):
         for s in self.itos:
             yield s
+
+    def load(self, path):
+        # a stupid title called "Null"
+        df = pd.read_csv(path, na_filter=False)
+        sentences = df['text'].tolist()
+        sentences = map(str.split, sentences)
+        self.__init__(sentences)
+        print('Vocab is built on corpus: {}'.format(path))
+        print(self)
+
+
+vocab = Vocab([])

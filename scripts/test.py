@@ -18,9 +18,10 @@ from torch.utils.data import DataLoader
 
 try:
     sys.path.append('.')
-    from humicroedit.datasets.humicroedit import HumicroeditDataset
+    from humicroedit import datasets
     from humicroedit import networks
     from humicroedit.utils import call
+    from humicroedit.datasets.vocab import vocab
 except Exception as e:
     print(e)
     print('Please run inside the root dir, but not {}.'.format(os.getcwd()))
@@ -32,6 +33,8 @@ def get_opts():
     parser.add_argument('--name', type=str, default='baseline-lstm-mse')
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
+    parser.add_argument('--vocab', type=str, default='data/examiner/'
+                        'examiner-date-text.preprocessed.csv')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--split', type=str, default='dev')
     opts = parser.parse_args()
@@ -63,6 +66,8 @@ def test(model, dl,
 def main():
     opts = get_opts()
 
+    vocab.load(opts.vocab)
+
     results = []
 
     def save_results(status):
@@ -78,7 +83,8 @@ def main():
         df.to_csv(path, index=None)
 
     # build dataset
-    ds = HumicroeditDataset(opts.root, opts.split, use_kg='kg' in opts.name)
+    ds = datasets.get(opts.root, 'train', 'kg' in opts.name)
+
     dl = DataLoader(ds,
                     batch_size=opts.batch_size,
                     shuffle=False,

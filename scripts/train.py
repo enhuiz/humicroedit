@@ -17,9 +17,10 @@ from test import test
 
 try:
     sys.path.append('.')
-    from humicroedit.datasets.humicroedit import HumicroeditDataset
+    from humicroedit import datasets
     from humicroedit import networks
     from humicroedit.utils import call
+    from humicroedit.datasets.vocab import vocab
 except ImportError as e:
     print(e)
     print('Please run under the root dir, but not {}.'.format(os.getcwd()))
@@ -28,11 +29,14 @@ except ImportError as e:
 
 def get_opts():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', type=str, default='baseline-lstm-mse')
+    parser.add_argument('--name', type=str,
+                        default='baseline-lstm-mse@humicroedit')
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
+    parser.add_argument('--vocab', type=str, default='data/examiner/'
+                        'examiner-date-text.preprocessed.csv')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--save-every', type=int, default=1)
     opts = parser.parse_args()
@@ -102,10 +106,12 @@ def train(model, dataloader, optimizer, epochs,
 def main():
     opts = get_opts()
 
+    vocab.load(opts.vocab)
+
     ckpts = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))
 
     # build dataset
-    ds = HumicroeditDataset(opts.root, 'train', use_kg='kg' in opts.name)
+    ds = datasets.get(opts.root, 'train', 'kg' in opts.name)
 
     num_train = int(len(ds) * 0.9)
 
