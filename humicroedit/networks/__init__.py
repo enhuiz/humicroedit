@@ -86,6 +86,7 @@ def get(name):
                     )
                 ),
                 Lambda(lambda feeds: {
+                    'id': feeds[0]['id'],
                     'pred': feeds[0]['pred'],
                     'x': feeds[0]['x'],
                     'loss': torch.stack([feeds[0]['loss'], feeds[1]['loss']]),
