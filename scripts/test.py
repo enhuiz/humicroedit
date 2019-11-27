@@ -33,6 +33,7 @@ def get_opts():
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--split', type=str, default='dev')
     opts = parser.parse_args()
     opts.name = opts.name.lower()
     return opts
@@ -77,7 +78,7 @@ def main():
         df.to_csv(path, index=None)
 
     # build dataset
-    ds = HumicroeditDataset(opts.root, 'dev', use_kg='kg' in opts.name)
+    ds = HumicroeditDataset(opts.root, opts.split, use_kg='kg' in opts.name)
     dl = DataLoader(ds,
                     batch_size=opts.batch_size,
                     shuffle=False,
