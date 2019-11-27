@@ -2,6 +2,8 @@
 
 ## Directory
 
+The directory is out of date, it will be updated later.
+
 ```plain
 .
 ├── data                                <- dataset, readonly.
@@ -85,10 +87,18 @@ Fetch COMET object given the subject over all relations (this step is not necess
 ./scripts/test.py --name transformer-baseline
 ```
 
-## NER, EL and KGE
+## History
 
-To incorporate the knowledge graph into our task, we may want to understand the following concept:
+- 2019-11-26
 
-- Name entity recognition (NER): https://towardsdatascience.com/named-entity-recognition-with-nltk-and-spacy-8c4a7d88e7da
-- Entity linking (EL): https://medium.com/analytics-vidhya/entity-linking-a-primary-nlp-task-for-information-extraction-22f9d4b90aa8
-- Knowledge graph embeddings (KGE): https://github.com/mnick/scikit-kge
+1. Add lemmatization using [spacy](https://spacy.io/).
+2. Use COMMEt model trained on ATOMIC to relate our data to the corresponding object in the knowledge graph.
+3. Add BERT pretraining (only the mask) part.
+
+
+## Planing
+
+- 2019-11-27
+
+1. Run experiments to see whether there is improvement.
+2. Maybe start writing.
