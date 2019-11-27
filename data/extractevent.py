@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Nov 26 09:13:05 2019
 
-@author: 24707
-"""
 #%%
 from stanfordcorenlp import StanfordCoreNLP
 #from nltk.parse.corenlp import CoreNLPDependencyParser
@@ -13,6 +9,7 @@ import sys
 import os
 import numpy as np
 import itertools
+import json
 
 try:
     sys.path.append('.')
@@ -21,7 +18,7 @@ except ImportError as e:
     print(e)
     print('Please run under the root dir, but not {}.'.format(os.getcwd()))
     exit()
-ds = HumicroeditDataset('data/humicroedit/task-1', 'train')
+ds = HumicroeditDataset('data/humicroedit/task-1', 'dev')
 #samples,id,sentence,meangrade
 samples=ds.samples
 
@@ -205,57 +202,5 @@ if __name__ == '__main__':
             if flag==1:
                 Event[idx]={'text':text,'meangrade':meangrade,'pattern':pattern,'eventuality':E}
                 
-import json
-
-with open('event.json', 'w') as fp:
-    json.dump(Event, fp)        
-        
-        
-        
-        
-#    text = 'The dog barks.'#Barack Obama was born in Hawaii. He was elected president in 2008.'
-#    print ("Annotate:", sNLP.annotate(text))
-#    print ("POS:", sNLP.pos(text))
-#    print ("Tokens:", sNLP.word_tokenize(text))
-#    print ("NER:", sNLP.ner(text))
-#    print ("Parse:", sNLP.parse(text))
-#    print ("Dep Parse:", sNLP.dependency_parse(text))
-
-#%%
-#import os
-#from nltk.parse.corenlp import CoreNLPDependencyParser
-#
-#modelpath='C:\\Users\\24707\\OneDrive - HKUST Connect\\courses\\comp5222\\stanford-english-corenlp-2018-10-05-models\\edu\\stanford\\nlp\\models\\lexparser\\englishPCFG.ser.gz'
-##dep_parser=CoreNLPDependencyParser(model_path=modelpath)
-#dep_parser=CoreNLPDependencyParser(url='http://localhost:9000')
-#print ([parse.tree() for parse in dep_parser.raw_parse("The quick brown fox jumps over the lazy dog.")])
-
-
-
-
-
-#%%
-import sys
-import os
-import pandas as pd
-import stanfordnlp
-try:
-    sys.path.append('.')
-    from humicroedit.datasets.humicroedit import HumicroeditDataset
-except ImportError as e:
-    print(e)
-    print('Please run under the root dir, but not {}.'.format(os.getcwd()))
-    exit()
-sentences=pd.read_csv('humicroedit/task-1/train.csv')
-
-ds = HumicroeditDataset('humicroedit\\task-1', 'train')
-
-
-#stanfordnlp.download('en')   # This downloads the English models for the neural pipeline
-nlp = stanfordnlp.Pipeline() # This sets up a default neural pipeline in English
-doc = nlp("Barack Obama was born in Hawaii.  He was elected president in 2008.")
-doc.sentences[0].print_dependencies()
-
-sentences=pd.read_csv('humicroedit/task-1/train.csv')
-
-ds = HumicroeditDataset('data/humicroedit/task-1', 'train')
+with open('dev.event.json', 'w') as fp:
+    json.dump(Event, fp)
