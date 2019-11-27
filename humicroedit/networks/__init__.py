@@ -12,8 +12,8 @@ from humicroedit.datasets.vocab import Vocab
 
 
 def get(name):
-    dim = 64
-    num_layers = 4
+    dim = 128
+    num_layers = 6
     vocab_size = len(Vocab.specials) + Vocab.max_size
     num_segments = 20
 
@@ -25,7 +25,7 @@ def get(name):
             Applier(LSTMEncoder(num_layers, dim)),
         ]
     elif context == 'transformer':
-        num_heads = 4
+        num_heads = 8
         rpe_k = 0
         context_layers = [
             TransformerEncoder(num_layers, num_heads, dim, rpe_k=rpe_k),
@@ -50,14 +50,14 @@ def get(name):
 
     # select framework, the baseline framework or the bert framework
     if framework == 'baseline':
-        model = [
+        model = Serial(
             PrependCLS(),
             TokenSegmentEmbedding(dim, vocab_size, num_segments),
             *context_layers,
             # select CLS only
             SelectCLS(),
             *loss_layers,
-        ]
+        )
     elif framework == 'bert':
         p_mask = 0.15
         model = Serial(
