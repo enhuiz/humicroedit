@@ -43,24 +43,31 @@ def process_sentence(s):
 
 
 def process(df):
-    cols = [col for col in df.columns
-            if 'original-' in col or 'edited-' in col]
+    org_cols = [col for col in df.columns if 'original-' in col]
+    edt_cols = [col for col in df.columns if 'edited-' in col]
 
     def tokenize(col):
-        return '<{}>'.format(col.lower())
+        col = col.replace('original-', '').replace('edited-', '')
+        return '<kg-{}>'.format(col.lower())
 
-    def process_row(row):
-        text = [row['text']]
-        for col in cols:
-            sentences = eval(row[col])
-            s = next((s for s in sentences if s != 'none' and s != ""), 'none')
-            text.append(tokenize(col) + ' ' + process_sentence(s))
-        text = ' '.join(text)
-        return text
+    def next_valid_sentence(sentences):
+        iterator = (s for s in sentences if s != 'none' and s != "")
+        return next(iterator, '')
 
-    df['text'] = df.parallel_apply(process_row, axis=1)
+    def make_processor(cols):
+        def processor(row):
+            text = []
+            for col in cols:
+                s = next_valid_sentence(eval(row[col]))
+                text.append(tokenize(col) + ' ' + process_sentence(s))
+            text = ' '.join(text)
+            return text
+        return processor
 
-    for col in cols:
+    df['org_kg'] = df.parallel_apply(make_processor(org_cols), axis=1)
+    df['edt_kg'] = df.parallel_apply(make_processor(edt_cols), axis=1)
+
+    for col in org_cols + edt_cols:
         del df[col]
 
     return df

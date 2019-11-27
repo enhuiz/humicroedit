@@ -15,7 +15,7 @@ def get(name):
     dim = 64
     num_layers = 4
     vocab_size = len(Vocab.specials) + Vocab.max_size
-    num_segments = 19
+    num_segments = 20
 
     framework, context, loss = name.split('-')[:3]
 

@@ -12,6 +12,37 @@ from torch.nn.utils.rnn import pack_sequence, pad_sequence
 from humicroedit.datasets.vocab import Vocab
 
 
+def extract_edited(s):
+    return re.sub(r'<swap1>.+<swap2> (.+) <swap3>', r'\1', s)
+
+
+def extract_original(s):
+    return re.sub(r'<swap1> (.+) <swap2>.+<swap3>', r'\1', s)
+
+
+def kg_split(s):
+    # remove the first '' since <kg-*> appears at the first
+    return re.split(r'<kg-.+?>', s.strip())[1:]
+
+
+def text_assemble(row, use_kg):
+    if use_kg:
+        text = ' <sep> '.join([
+            extract_original(row['text']),
+            *kg_split(row['org_kg']),
+            extract_edited(row['text']),
+            *kg_split(row['edt_kg'])
+        ])
+        assert len(text.split('<sep>')) == 20
+    else:
+        text = ' <sep> '.join([
+            extract_original(row['text']),
+            extract_edited(row['text']),
+        ])
+        assert len(text.split('<sep>')) == 2
+    return text
+
+
 @lru_cache()
 def load_corpus(root, split, use_kg=False):
     filename = '{}.preprocessed{}.csv'.format(
@@ -20,9 +51,7 @@ def load_corpus(root, split, use_kg=False):
     path = os.path.join(root, filename)
     df = pd.read_csv(path)
 
-    if use_kg:
-        sub = partial(re.sub, r'<(original|edited)-.+?>', r'<sep>')
-        df['text'] = df['text'].apply(sub)
+    df['text'] = df.apply(partial(text_assemble, use_kg=use_kg), axis=1)
 
     if 'grades' in df.columns:
         df['grade'] = df['grades'].apply(lambda s: list(map(int, str(s))))
