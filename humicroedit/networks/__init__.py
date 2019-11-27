@@ -25,7 +25,7 @@ def get(name):
         ]
     elif context == 'transformer':
         num_heads = 8
-        rpe_k = 4
+        rpe_k = 0
         context_layers = [
             TransformerEncoder(num_layers, num_heads, dim, rpe_k=rpe_k),
         ]

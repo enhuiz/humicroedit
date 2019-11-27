@@ -34,6 +34,13 @@ class TransformerEncoder(nn.Module):
         super().__init__()
         ffn_dim = dim * 4 if ffn_dim is None else ffn_dim
 
+        if rpe_k > 0:
+            self.pe = nn.Identity()
+            print('Using relative positional encoding.')
+        else:
+            self.pe = PositionalEncoding(dim, dropout)
+            print('Using original positional encoding.')
+
         self.norm = nn.LayerNorm(dim)
 
         def mha(i):
@@ -56,6 +63,7 @@ class TransformerEncoder(nn.Module):
         x, length = pad_packed_sequence(feed['x'], batch_first=True)
         mask = padding_mask(length).to(x.device)
 
+        x = self.pe(x)
         for layer in self.layers:
             x = layer(x, mask)
         mem = self.norm(x)
