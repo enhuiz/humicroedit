@@ -31,7 +31,7 @@ def get_opts():
     parser.add_argument('--name', type=str, default='transformer-baseline')
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=64)
-    parser.add_argument('--epochs', type=int, default=15)
+    parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--save-every', type=int, default=1)
@@ -42,6 +42,8 @@ def get_opts():
 def log(status):
     epoch = status.epoch
     loss = np.mean(status.losses, axis=0)
+    if loss.ndim == 0:
+        loss = loss[None]
     with np.printoptions(precision=4, suppress=True):
         msg = 'Epoch {} loss {}'.format(epoch, loss)
     status.pbar.set_description(msg)
@@ -148,8 +150,11 @@ def main():
              ],
              pbar=lambda dl: dl)
         status.model.train()
+        loss = np.mean(losses, axis=0)
+        if loss.ndim == 0:
+            loss = loss[None]
         with np.printoptions(precision=4, suppress=True):
-            print('Loss on valid set: {}'.format(np.mean(losses, axis=0)))
+            print('Loss on valid set: {}'.format(loss))
 
     # build model
     model = networks.get(opts.name).to(opts.device)
