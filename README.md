@@ -90,15 +90,14 @@ Fetch COMET object given the subject over all relations (this step is not necess
 ## History
 
 - 2019-11-26
-
-1. Add lemmatization using [spacy](https://spacy.io/).
-2. Use COMMEt model trained on ATOMIC to relate our data to the corresponding object in the knowledge graph.
-3. Add BERT pretraining (only the mask) part.
+  1. Add lemmatization using [spacy](https://spacy.io/).
+  2. Use COMMEt model trained on ATOMIC to relate our data to the corresponding object in the knowledge graph.
+  3. Add BERT pretraining (only the mask) part.
 
 
 ## Planing
 
 - 2019-11-27
-
-1. Run experiments to see whether there is improvement.
-2. Maybe start writing.
+  1. Try to incorporate the knowledge graph into the training.
+  2. Run experiments to see whether there is improvement.
+  3. Maybe start writing.
