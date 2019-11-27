@@ -77,7 +77,7 @@ def main():
         df.to_csv(path, index=None)
 
     # build dataset
-    ds = HumicroeditDataset(opts.root, 'dev')
+    ds = HumicroeditDataset(opts.root, 'dev', use_kg='kg' in opts.name)
     dl = DataLoader(ds,
                     batch_size=opts.batch_size,
                     shuffle=False,

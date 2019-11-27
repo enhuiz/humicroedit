@@ -99,7 +99,7 @@ def main():
     ckpts = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))
 
     # build dataset
-    ds = HumicroeditDataset(opts.root, 'train')
+    ds = HumicroeditDataset(opts.root, 'train', use_kg='kg' in opts.name)
 
     num_train = int(len(ds) * 0.9)
 

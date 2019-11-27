@@ -13,8 +13,10 @@ from humicroedit.datasets.vocab import Vocab
 
 
 @lru_cache()
-def load_corpus(root, split):
-    path = os.path.join(root, '{}.preprocessed.csv'.format(split))
+def load_corpus(root, split, use_kg=False):
+    filename = '{}.preprocessed{}.csv'.format(
+        split, '.kg.processed' if use_kg else '')
+    path = os.path.join(root, filename)
     df = pd.read_csv(path)
 
     if 'grades' in df.columns:
@@ -40,18 +42,19 @@ def build_vocab(root):
 class HumicroeditDataset(Dataset):
     ignore_index = -100
 
-    def __init__(self, root, split):
+    def __init__(self, root, split, use_kg=False):
         self.root = root
         self.split = split
         self.training = 'train' in split
+        self.use_kg = use_kg
         self.vocab = build_vocab(self.root)
         self.make_samples()
 
     def load_corpus(self):
-        return load_corpus(self.root, self.split)
+        return load_corpus(self.root, self.split, self.use_kg)
 
     def make_samples(self):
-        df = load_corpus(self.root, self.split)
+        df = load_corpus(self.root, self.split, self.use_kg)
         self.samples = df[['id', 'text', 'grade']].values
 
     def __getitem__(self, index):
