@@ -76,17 +76,23 @@ def train(model, dataloader, optimizer, epochs,
         status.pbar = pbar(dataloader)
 
         for batch in status.pbar:
-            status.batch = batch
-            call(on_iteration_start)(status)
+            try:
+                status.batch = batch
+                call(on_iteration_start)(status)
 
-            out = model(feed=batch)
-            out['loss'].sum().backward()
-            optimizer.step()
-            optimizer.zero_grad()
+                out = model(feed=batch)
+                out['loss'].sum().backward()
+                optimizer.step()
+                optimizer.zero_grad()
 
-            status.out = out
-            status.losses.append(out['loss'].detach().cpu().numpy())
-            call(on_iteration_end)(status)
+                status.out = out
+                status.losses.append(out['loss'].detach().cpu().numpy())
+                call(on_iteration_end)(status)
+            except RuntimeError as e:
+                print(e)
+                model.zero_grad()
+                optimizer.zero_grad()
+                torch.cuda.empty_cache()
 
         call(on_epoch_end)(status)
 
