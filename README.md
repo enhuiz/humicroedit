@@ -96,6 +96,10 @@ Fetch COMET object given the subject over all relations (this step is not necess
   3. Add BERT pretraining (only the mask) part.
 
 
+- 2019-11-27
+  1. Use BERT jointly training instead of BERT pretraining (beat the baseline for the first time by :) 0.001).
+
+
 ## Planing
 
 - 2019-11-27
