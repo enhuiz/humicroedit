@@ -29,11 +29,12 @@ except Exception as e:
 
 def get_opts():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', type=str, default='transformer-baseline')
+    parser.add_argument('--name', type=str, default='baseline-lstm-mse')
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--device', type=str, default='cuda')
     opts = parser.parse_args()
+    opts.name = opts.name.lower()
     return opts
 
 

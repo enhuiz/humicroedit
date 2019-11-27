@@ -75,25 +75,35 @@ Fetch COMET object given the subject over all relations (this step is not necess
 
 ## Train & test
 
+The model name is in the format of `<framework>-<contextual-feature-extractor>-<loss>`. Currently, the possible choices are list as below:
+
+```
+<framework>: baseline, bert
+<contextual-feature-extractor>: lstm, transformer
+<loss>: sce, mse
+```
+
+Where sce stands for soft cross entropy loss and mse for mean squared error loss.
+
 - Train:
 
 ```
-./scripts/train.py --name transformer-baseline
+./scripts/train.py --name bert-transformer-sce
 ```
 
 - Test:
 
 ```
-./scripts/test.py --name transformer-baseline
+./scripts/test.py --name bert-transformer-sce
 ```
 
 ## History
 
 - 2019-11-26
   1. Add soft cross entropy loss.
-  1. Add lemmatization using [spacy](https://spacy.io/).
-  2. Use COMET model trained on ATOMIC to relate our data to the corresponding object in the knowledge graph, see `data/humicroedit/task-1/*.kg.csv`.
-  3. Add BERT pretraining (only the mask) part.
+  2. Add lemmatization using [spacy](https://spacy.io/).
+  3. Use COMET model trained on ATOMIC to relate our data to the corresponding object in the knowledge graph, see `data/humicroedit/task-1/*.kg.csv`.
+  4. Add BERT pretraining (only the mask) part.
 
 
 - 2019-11-27

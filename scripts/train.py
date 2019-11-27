@@ -28,7 +28,7 @@ except ImportError as e:
 
 def get_opts():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', type=str, default='transformer-baseline')
+    parser.add_argument('--name', type=str, default='baseline-lstm-mse')
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--epochs', type=int, default=30)
@@ -36,6 +36,7 @@ def get_opts():
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--save-every', type=int, default=1)
     opts = parser.parse_args()
+    opts.name = opts.name.lower()
     return opts
 
 

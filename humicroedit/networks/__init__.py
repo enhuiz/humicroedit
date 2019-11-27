@@ -16,83 +16,76 @@ def get(name):
     num_layers = 4
     vocab_size = len(Vocab.specials) + 10000
 
-    if 'lstm-' in name:
-        name = name.replace('lstm-', '')
-        if name == 'baseline':
-            model = Serial(
-                PrependCLS(),
-                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
-                Applier(LSTMEncoder(num_layers, dim)),
-                # select CLS only
-                SelectCLS(),
-                Applier(nn.Linear(dim, 1)),
-                MSELoss(),
-            )
-        elif name == 'baseline-ce':
-            model = Serial(
-                PrependCLS(),
-                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
-                Applier(LSTMEncoder(num_layers, dim)),
-                # select CLS only
-                SelectCLS(),
-                # 4 for 4 different grades
-                Applier(nn.Linear(dim, 4)),
-                SoftCrossEntropyLoss(),
-            )
-    elif 'transformer-' in name:
-        name = name.replace('transformer-', '')
-        num_heads = 8
-        if name == 'baseline':
-            model = Serial(
-                PrependCLS(),
-                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
-                TransformerEncoder(num_layers, num_heads, dim, rpe_k=4),
-                # select CLS only
-                SelectCLS(),
-                Applier(nn.Linear(dim, 1)),
-                MSELoss(),
-            )
-        elif name == 'baseline-ce':
-            model = Serial(
-                PrependCLS(),
-                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
-                TransformerEncoder(num_layers, num_heads, dim, rpe_k=4),
-                # select CLS only
-                SelectCLS(),
-                Applier(nn.Linear(dim, 4)),
-                SoftCrossEntropyLoss(),
-            )
-        elif name == 'bert':
-            p_mask = 0.15
+    framework, context, loss = name.split('-')[:3]
 
-            model = Serial(
-                PrependCLS(),
-                RandomMask(p_mask),
-                Applier(nn.Embedding(vocab_size, dim), broadcast=True),
-                TransformerEncoder(num_layers, num_heads, dim, rpe_k=4),
-                Parallel(
-                    Serial(
-                        SelectCLS(),
-                        Applier(nn.Linear(dim, 4)),
-                        SoftCrossEntropyLoss(),
-                    ),
-                    Serial(
-                        SelectMasked(),
-                        Applier(nn.Linear(dim, vocab_size), broadcast=True),
-                        Applier(nn.CrossEntropyLoss(),
-                                k_in=['x', 'masked'],
-                                k_out='loss',
-                                broadcast=True),
-                    )
-                ),
-                Lambda(lambda feeds: {
-                    'id': feeds[0]['id'],
-                    'pred': feeds[0]['pred'],
-                    'x': feeds[0]['x'],
-                    'loss': torch.stack([feeds[0]['loss'], feeds[1]['loss']]),
-                }),
-            )
+    # select contextural feature extractor, lstm or transformer
+    if context == 'lstm':
+        context_layers = [
+            Applier(LSTMEncoder(num_layers, dim)),
+        ]
+    elif context == 'transformer':
+        num_heads = 8
+        rpe_k = 4
+        context_layers = [
+            TransformerEncoder(num_layers, num_heads, dim, rpe_k=rpe_k),
+        ]
     else:
-        raise Exception("Unknown model: {}.".format(name))
+        raise Exception("Unknown contextual feature extractor: {}."
+                        .format(context))
+
+    # select loss, soft cross entropy vs mse
+    if loss == 'sce':
+        loss_layers = [
+            Applier(nn.Linear(dim, 4)),
+            SoftCrossEntropyLoss(),
+        ]
+    elif loss == 'mse':
+        loss_layers = [
+            Applier(nn.Linear(dim, 1)),
+            MSELoss(),
+        ]
+    else:
+        raise Exception("Unknown loss: {}.".format(loss))
+
+    # select framework, the baseline framework or the bert framework
+    if framework == 'baseline':
+        model = [
+            PrependCLS(),
+            Applier(nn.Embedding(vocab_size, dim), broadcast=True),
+            *context_layers,
+            # select CLS only
+            SelectCLS(),
+            *loss_layers,
+        ]
+    elif framework == 'bert':
+        p_mask = 0.15
+        model = Serial(
+            PrependCLS(),
+            RandomMask(p_mask),
+            Applier(nn.Embedding(vocab_size, dim), broadcast=True),
+            *context_layers,
+            Parallel(
+                Serial(
+                    SelectCLS(),
+                    *loss_layers,
+                ),
+                Serial(
+                    SelectMasked(),
+                    Applier(nn.Linear(dim, vocab_size), broadcast=True),
+                    Applier(nn.CrossEntropyLoss(),
+                            k_in=['x', 'masked'],
+                            k_out='loss',
+                            broadcast=True),
+                )
+            ),
+            Lambda(lambda feeds: {
+                'id': feeds[0]['id'],
+                'pred': feeds[0]['pred'],
+                'x': feeds[0]['x'],
+                'loss': torch.stack([feeds[0]['loss'], feeds[1]['loss']]),
+            }),
+        )
+    else:
+        raise Exception("Unknown framework: {}.".format(framework))
 
     return model
