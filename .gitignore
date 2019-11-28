@@ -5,3 +5,5 @@ results
 atomic
 *.db
 .vscode
+*.old.csv
+data/examiner
