@@ -75,12 +75,14 @@ Fetch COMET object given the subject over all relations (this step is not necess
 
 ## Train & test
 
-The model name is in the format of `<framework>-<contextual-feature-extractor>-<loss>`. Currently, the possible choices are list as below:
+The model name is in the format of `<dataset>/<framework>-<contextual-feature-extractor>-<loss>(-<kg>)`. Currently, the possible choices are list as below:
 
 ```
+<dataset>: humocroedit, examiner
 <framework>: baseline, bert
 <contextual-feature-extractor>: lstm, transformer
 <loss>: sce, mse
+<kg>: kga, kgc
 ```
 
 Where sce stands for soft cross entropy loss and mse for mean squared error loss.
@@ -88,13 +90,13 @@ Where sce stands for soft cross entropy loss and mse for mean squared error loss
 - Train:
 
 ```
-./scripts/train.py --name bert-transformer-sce
+./scripts/train.py --name humocroedit/bert-transformer-sce
 ```
 
 - Test:
 
 ```
-./scripts/test.py --name bert-transformer-sce
+./scripts/test.py --name humocroedit/bert-transformer-sce
 ```
 
 ## History
