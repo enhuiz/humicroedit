@@ -84,7 +84,7 @@ def main():
         df.to_csv(outpath, index=None)
 
     # build dataset
-    ds = datasets.get(opts.name, 'train', 'kg' in opts.name)
+    ds = datasets.get(opts.name, opts.split, 'kg' in opts.name)
 
     dl = DataLoader(ds,
                     batch_size=opts.batch_size,

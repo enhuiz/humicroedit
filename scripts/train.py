@@ -113,7 +113,7 @@ def main():
     # build dataset
     ds = datasets.get(opts.name, 'train', 'kg' in opts.name)
 
-    num_train = int(len(ds) * 0.9)
+    num_train = int(len(ds) * 0.95)
 
     train_ds = Subset(ds, range(num_train))
     valid_ds = Subset(ds, range(num_train, len(ds)))
