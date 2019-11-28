@@ -39,6 +39,7 @@ def get_opts():
     parser.add_argument('--split', type=str, default='dev')
     opts = parser.parse_args()
     opts.name = opts.name.lower()
+    opts.name = opts.name.replace('/', os.path.sep, 1)
     return opts
 
 
@@ -69,6 +70,7 @@ def main():
     vocab.load(opts.vocab)
 
     results = []
+    outpath = os.path.join('results', opts.name, 'task-1-output.csv')
 
     def save_results(status):
         nonlocal results
@@ -78,12 +80,11 @@ def main():
         df = pd.DataFrame(results, columns=['id', 'pred'])
         # force the pred inside its domain
         df['pred'] = df['pred'].clip(0, 3)
-        path = os.path.join('results', opts.name, 'task-1-output.csv')
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        df.to_csv(path, index=None)
+        os.makedirs(os.path.dirname(outpath), exist_ok=True)
+        df.to_csv(outpath, index=None)
 
     # build dataset
-    ds = datasets.get(opts.root, 'train', 'kg' in opts.name)
+    ds = datasets.get(opts.name, 'train', 'kg' in opts.name)
 
     dl = DataLoader(ds,
                     batch_size=opts.batch_size,
@@ -106,6 +107,8 @@ def main():
          on_iteration_end=[
              save_results,
          ])
+
+    print('Result has been written to:', outpath)
 
 
 if __name__ == "__main__":

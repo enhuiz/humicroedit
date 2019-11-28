@@ -72,12 +72,13 @@ class HumicroeditDataset(Dataset):
         self.make_samples()
 
     def load_corpus(self):
-        return load_corpus(self.root, self.split, self.use_kg)
+        df = load_corpus(self.root, self.split, self.use_kg)
+        if self.small:
+            df = df.head(500)
+        return df
 
     def make_samples(self):
         df = self.load_corpus()
-        if self.small:
-            df = df.head(500)
         self.samples = df[['id', 'text', 'grade']].values
 
     def __getitem__(self, index):
@@ -117,10 +118,6 @@ class HumicroeditDataset(Dataset):
         return len(self.samples)
 
     def __str__(self):
-        return 'Samples: {}'.format([
-            [
-                item
-                for sample in self.samples[:2]
-                for item in sample
-            ]
-        ])
+        return 'Samples:\n{}'.format('\n'.join([
+            str(self.__getitem__(i)) for i in range(2)
+        ]))

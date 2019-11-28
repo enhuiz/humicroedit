@@ -34,13 +34,13 @@ def get_opts():
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--epochs', type=int, default=30)
-    parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--vocab', type=str, default='data/examiner/'
                         'examiner-date-text.preprocessed.csv')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--save-every', type=int, default=1)
     opts = parser.parse_args()
     opts.name = opts.name.lower()
+    opts.name = opts.name.replace('/', os.path.sep, 1)
     return opts
 
 
@@ -111,7 +111,7 @@ def main():
     ckpts = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))
 
     # build dataset
-    ds = datasets.get(opts.root, 'train', 'kg' in opts.name)
+    ds = datasets.get(opts.name, 'train', 'kg' in opts.name)
 
     num_train = int(len(ds) * 0.9)
 
@@ -129,7 +129,6 @@ def main():
                           collate_fn=ds.get_collate_fn())
 
     # build callbacks
-
     def load_model(status):
         if not ckpts:
             return
@@ -138,7 +137,7 @@ def main():
         if epoch == opts.epochs:
             status.epoch = epoch + 1
             print('{} already exists.'.format(ckpt))
-        elif status.epoch < epoch:
+        elif status.epoch <= epoch:
             status.model.load_state_dict(torch.load(ckpt, map_location='cpu'))
             status.model.to(opts.device)
             status.epoch = epoch + 1

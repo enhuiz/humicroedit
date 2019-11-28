@@ -16,9 +16,8 @@ def load_corpus(root):
 
 
 class ExaminerDataset(HumicroeditDataset):
-    def __init__(self, root, split):
+    def __init__(self, root):
         self.root = root
-        self.small = 'small' in split
         self.make_samples()
 
     def load_corpus(self):
