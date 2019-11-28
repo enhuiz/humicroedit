@@ -51,10 +51,14 @@ def extract_term(row, original=True):
 
 
 def generate(args, split):
-    in_path = os.path.abspath(os.path.join(args.root,
-                                           split + '.preprocessed.csv'))
-    out_path = in_path.replace('.csv', '.kgc.csv')
-    df = pd.read_csv(in_path)
+    path = os.path.abspath(os.path.join(
+        args.root, split + '.preprocessed.csv'))
+    outpath = path.replace('.csv', '.kgc.csv')
+
+    try:
+        df = pd.read_csv(outpath, na_filter=False)
+    except:
+        df = pd.read_csv(path, na_filter=False)
 
     with working_directory('comet'):
         opt, state_dict = interactive.load_model_file(
@@ -75,7 +79,11 @@ def generate(args, split):
 
     sampler = interactive.set_sampler(opt, args.sampler, data_loader)
 
-    for i, row in tqdm.tqdm(list(df.iterrows())):
+    check_column = 'original-AtLocation'
+    for i, row in tqdm.tqdm(df.iterrows(), total=len(df)):
+        if check_column in row and len(row[check_column]) > 0:
+            continue
+
         # original sentence
         original = extract_term(row, True)
         disable_print()
@@ -102,7 +110,7 @@ def generate(args, split):
             df.at[i, 'edited-' + key] = json.dumps(result[key]['beams'])
         enable_print()
 
-        df.to_csv(out_path, index=None)
+        df.to_csv(outpath, index=None)
 
 
 def main():
