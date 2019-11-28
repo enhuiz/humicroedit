@@ -7,3 +7,6 @@
 [submodule "ASER"]
 	path = aser
 	url = https://github.com/HKUST-KnowComp/ASER.git
+[submodule "5ddfd0f11153c10001aa132c"]
+	path = writing
+	url = https://git.overleaf.com/5ddfd0f11153c10001aa132c
