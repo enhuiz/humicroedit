@@ -51,6 +51,7 @@ def convert(name):
 def tokenize(col):
     col = col.replace('original-', '').replace('edited-', '')
     col = convert(col)
+    col = ' '.join([token.lemma_ for token in nlp(col)])
     return '<kg-{}>'.format(col.lower())
 
 
@@ -94,7 +95,8 @@ def main():
                             '{}.preprocessed.{}.csv'
                             .format(split, args.kg_type))
         print('processing', path)
-        df = pd.read_csv(path, na_filter=False)
+        df = pd.read_csv(path)
+        df = df.fillna('[]')
         df = process(df)
         outpath = path.replace('csv', 'processed.csv')
         df.to_csv(outpath, index=None)
