@@ -11,6 +11,9 @@ from torch.nn.utils.rnn import pack_sequence, pad_sequence
 
 from humicroedit.datasets.vocab import vocab
 
+import spacy
+nlp = spacy.load('en')
+
 
 def extract_edited(s):
     return re.sub(r'<swap1>.+<swap2> (.+) <swap3>', r'\1', s)
@@ -23,8 +26,8 @@ def extract_original(s):
 def kg_split(s):
     # remove the first '' since <kg-*> appears at the first
     s = re.sub(r'<kg-(.+?)>', r'<kg> \1', s.strip())
-    s = re.split(r'<kg>', s.strip())[1:]
-    return s
+    ss = re.split(r'<kg>', s.strip())[1:]
+    return ss
 
 
 def text_assemble(row, use_kg):
@@ -73,6 +76,7 @@ class HumicroeditDataset(Dataset):
         self.kg_type = kg_type
         self.small = 'small' in split
         self.make_samples()
+        print(self)
 
     def load_corpus(self):
         df = load_corpus(self.root, self.split, self.kg_type)
