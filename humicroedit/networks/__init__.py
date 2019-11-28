@@ -16,8 +16,8 @@ from humicroedit.datasets.vocab import Vocab
 def get(name):
     dim = 128
     num_layers = 4
+    num_segments = 70
     vocab_size = len(Vocab.specials) + Vocab.max_size
-    num_segments = 20
 
     framework, contextual, loss = \
         name.split(os.path.sep)[1].split('-')[:3]
@@ -28,7 +28,7 @@ def get(name):
             Applier(LSTMEncoder(num_layers, dim)),
         ]
     elif contextual == 'transformer':
-        num_heads = 8
+        num_heads = 4
         rpe_k = 0
         contextual_layers = [
             TransformerEncoder(num_layers, num_heads, dim, rpe_k=rpe_k),
