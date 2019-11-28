@@ -9,9 +9,13 @@ import tqdm
 import spacy
 from pandarallel import pandarallel
 
+from stanford_nlp import parse_events
+
 nlp = spacy.load('en')
 
 pandarallel.initialize(progress_bar=True)
+
+from humicroedit.datasets.humicroedit import extract_edited, extract_original
 
 
 def get_args():
@@ -57,6 +61,14 @@ def process(df):
     df['text'] = df['text'].apply(lambda s: s.replace('swapiii', '<swap3>')
                                   .replace('swapii', '<swap2>')
                                   .replace('swapi', '<swap1>'))
+
+    df['original_event'] = (df['text']
+                            .apply(extract_original)
+                            .parallel_apply(parse_events))
+
+    df['edited_event'] = (df['text']
+                          .apply(extract_edited)
+                          .parallel_apply(parse_events))
 
     return df
 
