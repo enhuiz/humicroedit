@@ -1,3 +1,5 @@
+import os
+import math
 from functools import partial
 
 import torch
@@ -13,26 +15,27 @@ from humicroedit.datasets.vocab import Vocab
 
 def get(name):
     dim = 128
-    num_layers = 6
+    num_layers = 4
     vocab_size = len(Vocab.specials) + Vocab.max_size
     num_segments = 20
 
-    framework, context, loss = name.split('-')[:3]
+    framework, contextual, loss = \
+        name.split(os.path.sep)[1].split('-')[:3]
 
     # select contextural feature extractor, lstm or transformer
-    if context == 'lstm':
-        context_layers = [
+    if contextual == 'lstm':
+        contextual_layers = [
             Applier(LSTMEncoder(num_layers, dim)),
         ]
-    elif context == 'transformer':
+    elif contextual == 'transformer':
         num_heads = 8
         rpe_k = 0
-        context_layers = [
+        contextual_layers = [
             TransformerEncoder(num_layers, num_heads, dim, rpe_k=rpe_k),
         ]
     else:
         raise Exception("Unknown contextual feature extractor: {}."
-                        .format(context))
+                        .format(contextual))
 
     # select loss, soft cross entropy vs mse
     if loss == 'sce':
@@ -53,7 +56,7 @@ def get(name):
         model = Serial(
             PrependCLS(),
             TokenSegmentEmbedding(dim, vocab_size, num_segments),
-            *context_layers,
+            *contextual_layers,
             # select CLS only
             SelectCLS(),
             *loss_layers,
@@ -64,7 +67,7 @@ def get(name):
             PrependCLS(),
             RandomMask(p_mask),
             TokenSegmentEmbedding(dim, vocab_size, num_segments),
-            *context_layers,
+            *contextual_layers,
             Parallel(
                 Serial(
                     SelectCLS(),
@@ -83,7 +86,8 @@ def get(name):
                 'id': feeds[0]['id'],
                 'pred': feeds[0]['pred'],
                 'x': feeds[0]['x'],
-                'loss': torch.stack([feeds[0]['loss'], feeds[1]['loss']]),
+                'loss': torch.stack([feeds[0]['loss'],
+                                     feeds[1]['loss'] / math.log(vocab_size)]),
             }),
         )
     else:
