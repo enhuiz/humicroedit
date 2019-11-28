@@ -12,7 +12,7 @@ nlp = spacy.load('en')
 
 from pandarallel import pandarallel
 
-pandarallel.initialize(progress_bar=True, shm_size_mb=10000)
+pandarallel.initialize(nb_workers=8, progress_bar=True)
 
 
 def get_args():
@@ -43,32 +43,39 @@ def process_sentence(s):
     return s
 
 
+def convert(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1 \2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1 \2', s1).lower()
+
+
+def tokenize(col):
+    col = col.replace('original-', '').replace('edited-', '')
+    col = convert(col)
+    return '<kg-{}>'.format(col.lower())
+
+
+def next_valid_sentence(sentences):
+    iterator = (s for s in sentences if s != 'none' and s != "")
+    return next(iterator, 'none')
+
+
+def make_processor(cols):
+    def processor(row):
+        text = []
+        for col in cols:
+            s = next_valid_sentence(row[col])
+            text.append(tokenize(col) + ' ' + process_sentence(s))
+        text = ' '.join(text)
+        return text
+    return processor
+
+
 def process(df):
     org_cols = [col for col in df.columns if 'original-' in col]
     edt_cols = [col for col in df.columns if 'edited-' in col]
 
-    def convert(name):
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1 \2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1 \2', s1).lower()
-
-    def tokenize(col):
-        col = col.replace('original-', '').replace('edited-', '')
-        col = convert(col)
-        return '<kg-{}>'.format(col.lower())
-
-    def next_valid_sentence(sentences):
-        iterator = (s for s in sentences if s != 'none' and s != "")
-        return next(iterator, 'none')
-
-    def make_processor(cols):
-        def processor(row):
-            text = []
-            for col in cols:
-                s = next_valid_sentence(eval(row[col]))
-                text.append(tokenize(col) + ' ' + process_sentence(s))
-            text = ' '.join(text)
-            return text
-        return processor
+    for col in org_cols + edt_cols:
+        df[col] = df[col].apply(eval)
 
     df['org_kg'] = df.parallel_apply(make_processor(org_cols), axis=1)
     df['edt_kg'] = df.parallel_apply(make_processor(edt_cols), axis=1)
@@ -86,6 +93,7 @@ def main():
         path = os.path.join(args.root,
                             '{}.preprocessed.{}.csv'
                             .format(split, args.kg_type))
+        print('processing', path)
         df = pd.read_csv(path, na_filter=False)
         df = process(df)
         outpath = path.replace('csv', 'processed.csv')
