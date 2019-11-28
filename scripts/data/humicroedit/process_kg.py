@@ -12,12 +12,13 @@ nlp = spacy.load('en')
 
 from pandarallel import pandarallel
 
-pandarallel.initialize(progress_bar=True)
+pandarallel.initialize(progress_bar=True, shm_size_mb=10000)
 
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
+    parser.add_argument('--kg-type', type=str, default='kgc')
     args = parser.parse_args()
     return args
 
@@ -46,13 +47,18 @@ def process(df):
     org_cols = [col for col in df.columns if 'original-' in col]
     edt_cols = [col for col in df.columns if 'edited-' in col]
 
+    def convert(name):
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1 \2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1 \2', s1).lower()
+
     def tokenize(col):
         col = col.replace('original-', '').replace('edited-', '')
+        col = convert(col)
         return '<kg-{}>'.format(col.lower())
 
     def next_valid_sentence(sentences):
         iterator = (s for s in sentences if s != 'none' and s != "")
-        return next(iterator, '')
+        return next(iterator, 'none')
 
     def make_processor(cols):
         def processor(row):
@@ -78,11 +84,11 @@ def main():
 
     for split in ['train', 'dev']:
         path = os.path.join(args.root,
-                            '{}.preprocessed.kg.csv'.format(split))
-        df = pd.read_csv(path)
+                            '{}.preprocessed.{}.csv'
+                            .format(split, args.kg_type))
+        df = pd.read_csv(path, na_filter=False)
         df = process(df)
-        outpath = os.path.join(args.root,
-                               split + '.preprocessed.kg.processed.csv')
+        outpath = path.replace('csv', 'processed.csv')
         df.to_csv(outpath, index=None)
         print(df.head()['text'])
 
