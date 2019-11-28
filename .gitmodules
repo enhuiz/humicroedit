@@ -5,5 +5,5 @@
 	path = comet
 	url = https://github.com/atcbosselut/comet-commonsense.git
 [submodule "ASER"]
-	path = ASER
+	path = aser
 	url = https://github.com/HKUST-KnowComp/ASER.git
