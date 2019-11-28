@@ -5,11 +5,11 @@ from .examiner import ExaminerDataset
 from .toy import ToyDataset
 
 
-def get(name, split, use_kg):
+def get(name, split=None, kg_type=None):
     name = name.split(os.path.sep)[0]
 
     if name == 'humicroedit':
-        ds = HumicroeditDataset('data/humicroedit/task-1', split, use_kg)
+        ds = HumicroeditDataset('data/humicroedit/task-1', split, kg_type)
     elif name == 'examiner':
         ds = ExaminerDataset('data/examiner')
     elif name == 'toy':

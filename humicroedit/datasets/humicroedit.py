@@ -22,7 +22,9 @@ def extract_original(s):
 
 def kg_split(s):
     # remove the first '' since <kg-*> appears at the first
-    return re.split(r'<kg-.+?>', s.strip())[1:]
+    s = re.sub(r'<kg-(.+?)>', r'<kg> \1', s.strip())
+    s = re.split(r'<kg>', s.strip())[1:]
+    return s
 
 
 def text_assemble(row, use_kg):
@@ -33,7 +35,8 @@ def text_assemble(row, use_kg):
             extract_edited(row['text']),
             *kg_split(row['edt_kg'])
         ])
-        assert len(text.split('<sep>')) == 20
+        assert len(text.split('<sep>')) == 20 or\
+            len(text.split('<sep>')) == 70
     else:
         text = ' <sep> '.join([
             extract_original(row['text']),
@@ -44,14 +47,14 @@ def text_assemble(row, use_kg):
 
 
 @lru_cache()
-def load_corpus(root, split, use_kg=False):
-    filename = '{}.preprocessed{}.csv'.format(
-        split, '.kg.processed' if use_kg else '')
+def load_corpus(root, split, kg_type=None):
+    kg_suffix = '.{}.processed'.format(kg_type) if kg_type else ''
 
-    path = os.path.join(root, filename)
+    path = os.path.join(root, '{}.preprocessed{}.csv'.format(split, kg_suffix))
     df = pd.read_csv(path)
 
-    df['text'] = df.apply(partial(text_assemble, use_kg=use_kg), axis=1)
+    assembler = partial(text_assemble, use_kg=kg_type is not None)
+    df['text'] = df.apply(assembler, axis=1)
 
     if 'grades' in df.columns:
         df['grade'] = df['grades'].apply(lambda s: list(map(int, str(s))))
@@ -63,16 +66,16 @@ def load_corpus(root, split, use_kg=False):
 
 class HumicroeditDataset(Dataset):
 
-    def __init__(self, root, split, use_kg=False):
+    def __init__(self, root, split, kg_type=None):
         self.root = root
         self.split = split.replace('-small', '')
         self.training = 'train' in split
-        self.use_kg = use_kg
+        self.kg_type = kg_type
         self.small = 'small' in split
         self.make_samples()
 
     def load_corpus(self):
-        df = load_corpus(self.root, self.split, self.use_kg)
+        df = load_corpus(self.root, self.split, self.kg_type)
         if self.small:
             df = df.head(500)
         return df

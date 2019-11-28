@@ -8,11 +8,12 @@ import tqdm
 import argparse
 from pathlib import Path
 
+import re
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, ConcatDataset
 from test import test
 
 try:
@@ -30,7 +31,7 @@ except ImportError as e:
 def get_opts():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str,
-                        default='baseline-lstm-mse@humicroedit')
+                        default='humicroedit/baseline-lstm-mse')
     parser.add_argument('--lr', type=float, default=3e-3)
     parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--epochs', type=int, default=30)
@@ -103,6 +104,18 @@ def train(model, dataloader, optimizer, epochs,
         status.epoch += 1
 
 
+def load_state_dict(model, state_dict, strict=False):
+    if not strict:
+        for k, v in model.state_dict().items():
+            if k not in state_dict:
+                print('Warning: {} is missing'.format(k))
+            elif v.shape != state_dict[k].shape:
+                del state_dict[k]
+                print('Warning: {} mismatch, ignored'.format(k))
+    model.load_state_dict(state_dict, strict=strict)
+    return model
+
+
 def main():
     opts = get_opts()
 
@@ -111,12 +124,18 @@ def main():
     ckpts = sorted(glob.glob(os.path.join('ckpt', opts.name, '*.pth')))
 
     # build dataset
-    ds = datasets.get(opts.name, 'train', 'kg' in opts.name)
+    ds = datasets.get(opts.name, 'train',
+                      re.findall(r'(kg.)', opts.name)[0])
 
     num_train = int(len(ds) * 0.95)
 
     train_ds = Subset(ds, range(num_train))
     valid_ds = Subset(ds, range(num_train, len(ds)))
+
+    if 'augmented' in opts.name and 'humicroedit' in opts.name:
+        train_ds = ConcatDataset([
+            train_ds, datasets.get('examiner', None, None)
+        ])
 
     train_dl = DataLoader(train_ds,
                           batch_size=opts.batch_size,
@@ -138,7 +157,9 @@ def main():
             status.epoch = epoch + 1
             print('{} already exists.'.format(ckpt))
         elif status.epoch <= epoch:
-            status.model.load_state_dict(torch.load(ckpt, map_location='cpu'))
+            load_state_dict(status.model,
+                            torch.load(ckpt, map_location='cpu'),
+                            status.epoch > 1)
             status.model.to(opts.device)
             status.epoch = epoch + 1
             print(ckpt, 'loaded.')
