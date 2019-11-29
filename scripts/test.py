@@ -32,7 +32,7 @@ except Exception as e:
 def get_opts():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='baseline-lstm-mse')
-    parser.add_argument('--batch-size', type=int, default=64)
+    parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--root', type=str, default='data/humicroedit/task-1')
     parser.add_argument('--vocab', type=str, default='data/examiner/'
                         'examiner-date-text.preprocessed.csv')
@@ -86,7 +86,7 @@ def main():
 
     # build dataset
     ds = datasets.get(opts.name, opts.split,
-                      re.findall(r'(kg.)', opts.name)[0])
+                      next(iter(re.findall(r'(kg.)', opts.name)), None))
 
     dl = DataLoader(ds,
                     batch_size=opts.batch_size,

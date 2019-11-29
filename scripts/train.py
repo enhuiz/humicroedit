@@ -33,7 +33,7 @@ def get_opts():
     parser.add_argument('--name', type=str,
                         default='humicroedit/baseline-lstm-mse')
     parser.add_argument('--lr', type=float, default=3e-3)
-    parser.add_argument('--batch-size', type=int, default=64)
+    parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--vocab', type=str, default='data/examiner/'
                         'examiner-date-text.preprocessed.csv')
@@ -125,7 +125,7 @@ def main():
 
     # build dataset
     ds = datasets.get(opts.name, 'train',
-                      re.findall(r'(kg.)', opts.name)[0])
+                      next(iter(re.findall(r'(kg.)', opts.name)), None))
 
     num_train = int(len(ds) * 0.95)
 
