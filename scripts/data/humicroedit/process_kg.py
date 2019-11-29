@@ -51,7 +51,6 @@ def convert(name):
 def tokenize(col):
     col = col.replace('original-', '').replace('edited-', '')
     col = convert(col)
-    col = ' '.join([token.lemma_ for token in nlp(col)])
     return '<kg-{}>'.format(col.lower())
 
 

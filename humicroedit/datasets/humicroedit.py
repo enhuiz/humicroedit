@@ -25,8 +25,9 @@ def extract_original(s):
 
 def kg_split(s):
     # remove the first '' since <kg-*> appears at the first
-    s = re.sub(r'<kg-(.+?)>', r'<kg> \1', s.strip())
-    ss = re.split(r'<kg>', s.strip())[1:]
+    # s = re.sub(r'<kg-(.+?)>', r'<kg> \1', s.strip())
+    # ss = re.split(r'<kg>', s.strip())[1:]
+    ss = re.split(r'<kg-.+?>', s.strip())[1:]
     return ss
 
 
@@ -126,5 +127,5 @@ class HumicroeditDataset(Dataset):
 
     def __str__(self):
         return 'Samples:\n{}'.format('\n'.join([
-            str(self.__getitem__(i)) for i in range(2)
+            str(self.__getitem__(i)) for i in range(1)
         ]))
